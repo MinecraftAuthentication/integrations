@@ -45,7 +45,7 @@ jobs:
           echo "run-id=$RUN_ID" >> "$GITHUB_OUTPUT"
           echo "sha=$RUN_SHA" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ steps.build.outputs.sha }}
           # the whole history and tags, for the commit list in the release notes
@@ -65,7 +65,7 @@ jobs:
             echo "publish=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: steps.current.outputs.publish == 'true'
         with:
           name: minecraft
