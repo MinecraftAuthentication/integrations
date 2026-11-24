@@ -100,7 +100,7 @@ The [`examples/`](examples/) directory has a complete Caddyfile for each use cas
 | `on_api_error` | `deny` | `deny` (respond 503) or `allow` when MinecraftAuth.me or a platform can't answer |
 | `persist` | `true` | remember the player's approval; `false` asks them every login |
 | `scopes` | none | extra platforms to request at login (`minecraft` is always requested) |
-| `cookie_prefix` | `mcauth` | cookies are `<prefix>_session` and `<prefix>_state` |
+| `cookie_prefix` | `mcauth` | cookies are `<prefix>_session` and `<prefix>_state`. They're set for the registrable domain of `redirect` (`example.com` for `https://auth.example.com/...`), so one callback and one login serve every subdomain |
 | `luckperms <url> { api_key <key> }` | none | your [LuckPerms REST API](#luckperms); required by `permission` and `group` rules |
 | `realm <name> { ... }` | | a set of rules; a player gets in when **any** rule matches (see [Combining rules](#combining-rules)) |
 

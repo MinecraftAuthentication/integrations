@@ -8,8 +8,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
+	"strings"
 	"time"
+
+	"golang.org/x/net/publicsuffix"
 )
 
 // session is what the session cookie holds once a player has logged in.
@@ -22,8 +26,10 @@ type session struct {
 
 // loginState is what the short-lived state cookie holds between the redirect to MinecraftAuth.me and the callback.
 type loginState struct {
-	State   string `json:"state"`
-	Return  string `json:"ret"`
+	State  string `json:"state"`
+	Return string `json:"ret"`
+	// Host the login started on, when it may differ from the callback's (a sibling subdomain).
+	Host    string `json:"host,omitempty"`
 	Expires int64  `json:"exp"`
 }
 
@@ -87,6 +93,7 @@ func (a *App) setCookie(w http.ResponseWriter, r *http.Request, name string, v a
 		Name:     name,
 		Value:    value,
 		Path:     "/",
+		Domain:   a.cookieDomainFor(r),
 		MaxAge:   int(ttl.Seconds()),
 		HttpOnly: true,
 		Secure:   isSecure(r),
@@ -96,8 +103,45 @@ func (a *App) setCookie(w http.ResponseWriter, r *http.Request, name string, v a
 	return nil
 }
 
-func clearCookie(w http.ResponseWriter, r *http.Request, name string) {
-	http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: isSecure(r), SameSite: http.SameSiteLaxMode})
+func (a *App) clearCookie(w http.ResponseWriter, r *http.Request, name string) {
+	http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", Domain: a.cookieDomainFor(r), MaxAge: -1, HttpOnly: true, Secure: isSecure(r), SameSite: http.SameSiteLaxMode})
+}
+
+// registrableDomain returns host's eTLD+1 (auth.example.co.uk -> example.co.uk), or "" for IPs, single-label
+// hosts and public suffixes, which can't carry a shared cookie.
+func registrableDomain(host string) string {
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	if host == "" || net.ParseIP(host) != nil || !strings.Contains(host, ".") {
+		return ""
+	}
+	d, err := publicsuffix.EffectiveTLDPlusOne(host)
+	if err != nil {
+		return ""
+	}
+	return d
+}
+
+// inCookieDomain reports whether host (without port) is the cookie domain or one of its subdomains.
+func (a *App) inCookieDomain(host string) bool {
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	return a.cookieDomain != "" && (host == a.cookieDomain || strings.HasSuffix(host, "."+a.cookieDomain))
+}
+
+// cookieDomainFor is the Domain attribute for cookies set in response to r: the shared cookie domain when r's
+// host is under it (a browser would reject it otherwise), else none, leaving the cookie host-only.
+func (a *App) cookieDomainFor(r *http.Request) string {
+	if a.inCookieDomain(requestHost(r)) {
+		return a.cookieDomain
+	}
+	return ""
+}
+
+// requestHost is r's host without the port.
+func requestHost(r *http.Request) string {
+	if h, _, err := net.SplitHostPort(r.Host); err == nil {
+		return h
+	}
+	return r.Host
 }
 
 func (a *App) sessionCookie() string { return a.CookiePrefix + "_session" }

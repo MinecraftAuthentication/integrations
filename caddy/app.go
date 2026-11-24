@@ -64,8 +64,12 @@ type App struct {
 	lp      *luckPermsClient
 	keys    *mcauth.KeySource
 	cookies *cookieCodec
-	cache   *membershipCache
-	logger  *zap.Logger
+	// cookieDomain is the registrable domain of RedirectURL (e.g. example.com for auth.example.com), so a
+	// login started on any of its subdomains reaches the callback with its cookies. Empty for IPs and
+	// single-label hosts like localhost, whose cookies stay host-only.
+	cookieDomain string
+	cache        *membershipCache
+	logger       *zap.Logger
 }
 
 // Realm is a named set of rules. A player is allowed when any rule matches; use an `all` rule to require
@@ -172,6 +176,9 @@ func (a *App) Provision(ctx caddy.Context) error {
 	}
 	a.keys = &mcauth.KeySource{Client: &mcauth.Client{BaseURL: a.APIBase, UserAgent: a.client.UserAgent}}
 	a.cache = newMembershipCache(time.Duration(a.MembershipTTL))
+	if u, err := url.Parse(a.RedirectURL); err == nil {
+		a.cookieDomain = registrableDomain(u.Hostname())
+	}
 
 	key := []byte(a.SessionKey)
 	if len(key) == 0 {

@@ -341,3 +341,115 @@ func TestHandlerProvision(t *testing.T) {
 		t.Errorf("app Validate not run: %v", err)
 	}
 }
+
+func TestRegistrableDomain(t *testing.T) {
+	for host, want := range map[string]string{
+		"panel.minecraftauth.me": "minecraftauth.me",
+		"A.B.Example.COM.":       "example.com",
+		"auth.example.co.uk":     "example.co.uk",
+		"user.github.io":         "user.github.io",
+		"github.io":              "",
+		"localhost":              "",
+		"127.0.0.1":              "",
+		"::1":                    "",
+		"":                       "",
+	} {
+		if got := registrableDomain(host); got != want {
+			t.Errorf("registrableDomain(%q) = %q, want %q", host, got, want)
+		}
+	}
+}
+
+// A login started on a sibling subdomain of the callback's host shares the state and session cookies through
+// the registrable domain, and comes back to the host it started on.
+func TestLoginAcrossSubdomains(t *testing.T) {
+	for _, tc := range []struct{ redirect, start, domain string }{
+		{"https://minecraftauth.me/callback", "https://panel.minecraftauth.me/tables?x=1", "minecraftauth.me"},
+		{"https://gamecommunity.com/mcauth/callback", "https://panel.gamecommunity.com/home", "gamecommunity.com"},
+		{"https://auth.gamecommunity.com/mcauth/callback", "https://panel.gamecommunity.com/home", "gamecommunity.com"},
+	} {
+		t.Run(tc.start+" via "+tc.redirect, func(t *testing.T) {
+			f := newFakeAPI(t)
+			app := newApp(t, f, "deny")
+			app.RedirectURL = tc.redirect
+			app.cookieDomain = registrableDomain(mustURL(t, tc.redirect).Hostname())
+			protect := &Protect{Realm: "staff", app: app, realm: app.Realms["staff"]}
+
+			res, _ := serveRequest(t, protect, httptest.NewRequest(http.MethodGet, tc.start, nil))
+			stateCookie := cookieNamed(res.rec, app.stateCookie())
+			if res.rec.Code != http.StatusFound || stateCookie == nil || stateCookie.Domain != tc.domain {
+				t.Fatalf("want a redirect with a state cookie for %s, got %d %+v", tc.domain, res.rec.Code, stateCookie)
+			}
+			loc := mustURL(t, res.rec.Header().Get("Location"))
+			if loc.Query().Get("redirectUrl") != tc.redirect {
+				t.Fatalf("grant URL should send the player to %s, got %s", tc.redirect, loc)
+			}
+
+			q := url.Values{"status": {"accepted"}, "state": {loc.Query().Get("state")}, "token": {f.token(t, time.Now(), notch, "Notch")}}
+			req := httptest.NewRequest(http.MethodGet, tc.redirect+"?"+q.Encode(), nil)
+			req.AddCookie(stateCookie)
+			res, _ = serveRequest(t, &Callback{app: app}, req)
+			if res.err != nil || res.rec.Header().Get("Location") != tc.start {
+				t.Fatalf("want redirect back to %s, got %q %v", tc.start, res.rec.Header().Get("Location"), res.err)
+			}
+			session := cookieNamed(res.rec, app.sessionCookie())
+			if session == nil || session.Domain != tc.domain {
+				t.Fatalf("session cookie should cover %s, got %+v", tc.domain, session)
+			}
+			if c := cookieNamed(res.rec, app.stateCookie()); c == nil || c.Domain != tc.domain || c.MaxAge >= 0 {
+				t.Fatalf("state cookie should be cleared on %s, got %+v", tc.domain, c)
+			}
+
+			// back on the protected host, the session lets the player through
+			req = httptest.NewRequest(http.MethodGet, tc.start, nil)
+			req.AddCookie(session)
+			if res, _ = serveRequest(t, protect, req); res.err != nil || !res.nextOK {
+				t.Fatalf("session should let the player into %s, got %d %v", tc.start, res.rec.Code, res.err)
+			}
+		})
+	}
+}
+
+func mustURL(t *testing.T, s string) *url.URL {
+	t.Helper()
+	u, err := url.Parse(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return u
+}
+
+// Cookies set for a host outside the cookie domain stay host-only, since a browser would drop them otherwise.
+func TestCookieOutsideDomainIsHostOnly(t *testing.T) {
+	f := newFakeAPI(t)
+	app := newApp(t, f, "deny")
+	protect := &Protect{Realm: "staff", app: app, realm: app.Realms["staff"]}
+	res, _ := serveRequest(t, protect, httptest.NewRequest(http.MethodGet, "https://other.net/", nil))
+	if c := cookieNamed(res.rec, app.stateCookie()); c == nil || c.Domain != "" {
+		t.Fatalf("want a host-only state cookie, got %+v", c)
+	}
+}
+
+// The callback only returns to hosts under the cookie domain.
+func TestCallbackReturnHosts(t *testing.T) {
+	f := newFakeAPI(t)
+	app := newApp(t, f, "deny") // callback on example.com
+	for host, want := range map[string]string{
+		"":                      "/p",
+		"example.com":           "/p",
+		"db.example.com":        "https://db.example.com/p",
+		"db.example.com:8443":   "https://db.example.com:8443/p",
+		"evil.com":              "/p",
+		"example.com.evil.com":  "/p",
+		"evilexample.com":       "/p",
+		"evil.com/.example.com": "/p",
+		"x@db.example.com":      "/p",
+		"db.example.com#":       "/p",
+	} {
+		st := loginState{State: "S", Return: "/p", Host: host, Expires: time.Now().Add(time.Minute).Unix()}
+		res := callbackRequest(t, app, st, url.Values{"status": {"accepted"}, "state": {"S"}, "token": {f.token(t, time.Now(), notch, "Notch")}})
+		if res.err != nil || res.rec.Header().Get("Location") != want {
+			t.Errorf("host %q: got %q %v, want %q", host, res.rec.Header().Get("Location"), res.err, want)
+		}
+	}
+}

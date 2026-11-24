@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -103,7 +104,7 @@ func (p *Protect) startLogin(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	st := loginState{State: state, Return: r.URL.RequestURI(), Expires: time.Now().Add(maxTokenAge).Unix()}
+	st := loginState{State: state, Return: r.URL.RequestURI(), Host: r.Host, Expires: time.Now().Add(maxTokenAge).Unix()}
 	if err := p.app.setCookie(w, r, p.app.stateCookie(), st, maxTokenAge); err != nil {
 		return err
 	}
@@ -141,7 +142,7 @@ func (c *Callback) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhttp
 	if err != nil {
 		return caddyhttp.Error(http.StatusBadRequest, fmt.Errorf("mcauth: login expired or started elsewhere, please try again"))
 	}
-	clearCookie(w, r, a.stateCookie())
+	a.clearCookie(w, r, a.stateCookie())
 	var st loginState
 	if a.cookies.open(a.stateCookie(), cookie.Value, &st) != nil || time.Now().Unix() > st.Expires {
 		return caddyhttp.Error(http.StatusBadRequest, fmt.Errorf("mcauth: login expired, please try again"))
@@ -174,8 +175,27 @@ func (c *Callback) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhttp
 	a.logger.Info("mcauth: player logged in", zap.String("player", mc.Name), zap.String("uuid", mc.Identifier))
 
 	w.Header().Set("Cache-Control", "no-store")
-	http.Redirect(w, r, safeReturn(st.Return), http.StatusFound)
+	http.Redirect(w, r, a.returnURL(r, st), http.StatusFound)
 	return nil
+}
+
+// returnURL is where the callback sends the player after logging in: back to the page they asked for, on the
+// host they asked for it on when that is another host under the cookie domain, else on this host.
+func (a *App) returnURL(r *http.Request, st loginState) string {
+	path := safeReturn(st.Return)
+	if st.Host == "" || strings.EqualFold(st.Host, r.Host) {
+		return path
+	}
+	// the state cookie is sealed, but check the host anyway so the callback can never redirect off-site
+	u, err := url.Parse("//" + st.Host)
+	if err != nil || u.Host != st.Host || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || !a.inCookieDomain(u.Hostname()) {
+		return path
+	}
+	scheme := "http"
+	if isSecure(r) {
+		scheme = "https"
+	}
+	return scheme + "://" + u.Host + path
 }
 
 // safeReturn only allows same-origin paths, so the callback can't be used as an open redirect.

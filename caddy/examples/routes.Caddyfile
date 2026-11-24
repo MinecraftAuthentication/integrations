@@ -1,7 +1,8 @@
 # Different rules for different parts of one site, with some paths left public.
 #
-# The login only works on the host of the `redirect` URL (the session cookie belongs to that host),
-# so protect paths on one site rather than several hosts.
+# The login cookies belong to the registrable domain of the `redirect` URL (example.com here), so the
+# same callback and login also cover any subdomain, like admin.example.com. Hosts on other domains
+# can't log in through it.
 
 {
 	mcauth {
