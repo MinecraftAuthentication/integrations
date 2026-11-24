@@ -40,6 +40,9 @@ modrinth {
     )
     // Minotaur only knows plain Loom/ForgeGradle; every build here declares its loaders explicitly
     detectLoaders.set(false)
+    // every artifact here runs only on a dedicated server or proxy, never in singleplayer; Modrinth's default
+    // (server_only) would also tag it singleplayer
+    environment.set("DEDICATED_SERVER_ONLY")
     debugMode.set(providers.gradleProperty("modrinth.debug").map(String::toBoolean).orElse(false))
 }
 

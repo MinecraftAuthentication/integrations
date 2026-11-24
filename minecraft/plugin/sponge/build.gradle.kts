@@ -19,6 +19,4 @@ modrinth {
     loaders.add("sponge")
     // API 8 (1.16.5) introduced this plugin model; API 7 (1.12.2) can't load the jar
     gameVersions.set(minecraftReleases(">=1.16.5"))
-    // Sponge plugins run on a Sponge server, never in singleplayer; Modrinth's default (server_only) implies both
-    environment.set("DEDICATED_SERVER_ONLY")
 }
