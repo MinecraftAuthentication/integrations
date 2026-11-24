@@ -1,6 +1,6 @@
 {
   "name": "@minecraftauth/lib",
-  "version": "2.1.1-SNAPSHOT",
+  "version": "2.2.0",
   "description": "JavaScript/TypeScript client for the MinecraftAuth.me v2 API",
   "license": "Apache-2.0",
   "repository": {
