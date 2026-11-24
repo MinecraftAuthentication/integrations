@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/8.*
           key: temurin-jdk8-${{ runner.os }}-${{ runner.arch }}-8
@@ -63,7 +63,7 @@ jobs:
         with:
           go-version-file: go.work
           cache-dependency-path: "**/go.sum"
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/8.*
           key: temurin-jdk8-${{ runner.os }}-${{ runner.arch }}-8
@@ -91,7 +91,7 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
           cache-dependency-path: lib/js/package-lock.json
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/8.*
           key: temurin-jdk8-${{ runner.os }}-${{ runner.arch }}-8
