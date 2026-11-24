@@ -2,5 +2,5 @@
 
 ## Fix before launch
 
-- **Caddy distribution.** Release `lib/go` first, then remove the `replace` line in `caddy/go.mod` and release
-      `caddy` (RELEASING.md). Register the module on caddyserver.com/download so people can find it without xcaddy.
+- **Caddy distribution.** Register `github.com/MinecraftAuthentication/integrations/caddy/v2` at
+      caddyserver.com/account/register-package so people can find it on caddyserver.com/download without xcaddy.
