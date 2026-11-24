@@ -29,6 +29,7 @@ val loom = extensions.getByType<LoomGradleExtensionAPI>()
 val baseVersion = version.toString()
 version = "$baseVersion+$target"
 base.archivesName.set("MinecraftAuth-" + loader.replaceFirstChar(Char::uppercaseChar) + "-" + minecraftVersion)
+tasks.withType<AbstractArchiveTask>().configureEach { archiveVersion.set(baseVersion) }
 mcauth { javaVersion.set(targetJava) }
 
 repositories {
