@@ -106,6 +106,8 @@ Dependabot opens weekly update pull requests for Gradle, Go, npm and GitHub Acti
 leave them alone:
 
 - **Caffeine stays on 2.x.** 3.x needs Java 11, and `minecraft/common` targets Java 8 (Forge 1.16.5).
+- **`@types/node` stays on the oldest supported Node major** (`engines` in `lib/js/package.json`), so the code
+  can't use newer Node APIs.
 - **The Spigot, Velocity, BungeeCord and Sponge APIs** are the oldest versions supported, so the plugins load on
   them.
 - **Mod targets** (`minecraft/mod/versions/*/gradle.properties`) pin each Minecraft version's loader and mappings.

@@ -1,11 +1,20 @@
 version: 2
 
+registries:
+  sponge:
+    type: maven-repository
+    url: https://repo.spongepowered.org/repository/maven-public/
+  architectury:
+    type: maven-repository
+    url: https://maven.architectury.dev/
+
 updates:
   # Gradle: the version catalog (gradle/libs.versions.toml), build-logic and the wrapper.
   # Mod target versions in minecraft/mod/versions/*/gradle.properties are updated by hand.
   - package-ecosystem: gradle
     directory: /
     target-branch: devel
+    registries: [sponge, architectury]
     schedule:
       interval: weekly
     groups:
@@ -43,6 +52,10 @@ updates:
     groups:
       npm-dev:
         dependency-type: development
+    ignore:
+      # Matches the oldest supported Node (engines >= 22), so code can't use APIs that Node 22 lacks
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

@@ -3,6 +3,7 @@
 // a module can raise it with `mcauth { javaVersion = 17 }` *before* compilation is configured.
 import conventions.McAuthExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
@@ -31,8 +32,22 @@ dependencies {
     testRuntimeOnly(catalog.findLibrary("junit-launcher").get())
 }
 
+val testJavaVersion = mcauth.javaVersion.map { maxOf(it, 17) }
+val testToolchain: Action<JavaToolchainSpec> = Action { languageVersion.set(testJavaVersion.map(JavaLanguageVersion::of)) }
+
+tasks.named<JavaCompile>("compileTestJava") {
+    javaCompiler.set(javaToolchains.compilerFor(testToolchain))
+    options.release.set(testJavaVersion)
+}
+
+tasks.named<KotlinJvmCompile>("compileTestKotlin") {
+    kotlinJavaToolchain.toolchain.use(javaToolchains.launcherFor(testToolchain))
+    compilerOptions.jvmTarget.set(testJavaVersion.map { JvmTarget.fromTarget(it.toString()) })
+}
+
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    javaLauncher.set(javaToolchains.launcherFor(testToolchain))
 }
 
 tasks.withType<Jar>().configureEach {
