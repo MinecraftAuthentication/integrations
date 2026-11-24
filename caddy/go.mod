@@ -173,5 +173,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	howett.net/plist v1.0.1 // indirect
 )
-
-replace github.com/MinecraftAuthentication/integrations/lib/go/v2 => ../lib/go
