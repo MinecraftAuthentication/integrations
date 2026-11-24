@@ -1,9 +1,9 @@
-module github.com/MinecraftAuthentication/integrations/caddy
+module github.com/MinecraftAuthentication/integrations/caddy/v2
 
 go 1.26.0
 
 require (
-	github.com/MinecraftAuthentication/integrations/lib/go v0.0.0
+	github.com/MinecraftAuthentication/integrations/lib/go/v2 v2.0.0
 	github.com/caddyserver/caddy/v2 v2.11.9
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	go.uber.org/zap v1.28.0
@@ -174,4 +174,4 @@ require (
 	howett.net/plist v1.0.1 // indirect
 )
 
-replace github.com/MinecraftAuthentication/integrations/lib/go => ../lib/go
+replace github.com/MinecraftAuthentication/integrations/lib/go/v2 => ../lib/go

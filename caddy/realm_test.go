@@ -12,7 +12,7 @@ import (
 
 	"go.uber.org/zap"
 
-	mcauth "github.com/MinecraftAuthentication/integrations/lib/go"
+	mcauth "github.com/MinecraftAuthentication/integrations/lib/go/v2"
 )
 
 // recordingAPI answers membership checks from a function of the request and records each request.

@@ -11,7 +11,7 @@ Minecraft account to Discord, Twitch, Patreon and YouTube. Everything here uses 
 | **Minecraft mods** | [`minecraft/mod`](minecraft/README.md) | Fabric, Forge and NeoForge server mods from one [Stonecutter](https://stonecutter.kikugie.dev) source tree, Minecraft 1.16.5 to 26.x |
 | **Caddy** | [`caddy`](caddy/README.md) | A [Caddy](https://caddyserver.com) module that puts sites and routes behind a MinecraftAuth.me login and only lets chosen players through |
 | JVM client | [`lib/jvm`](lib/jvm/README.md) | `me.minecraftauth:lib`, the Kotlin/Java v2 API client the Minecraft integrations use |
-| Go client | [`lib/go`](lib/go/README.md) | `github.com/MinecraftAuthentication/integrations/lib/go`, the Go v2 API client the Caddy module uses |
+| Go client | [`lib/go`](lib/go/README.md) | `github.com/MinecraftAuthentication/integrations/lib/go/v2`, the Go v2 API client the Caddy module uses |
 | JavaScript/TypeScript client | [`lib/js`](lib/js/README.md) | `@minecraftauth/lib` on npm, a dependency-free v2 API client for Node.js, Deno, Bun, edge runtimes and browsers |
 
 This project isn't associated with or endorsed by Minecraft/Mojang.

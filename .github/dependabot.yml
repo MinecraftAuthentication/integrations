@@ -42,7 +42,7 @@ updates:
         patterns: ["*"]
     ignore:
       # Kept in step by hand when releasing (see RELEASING.md)
-      - dependency-name: github.com/MinecraftAuthentication/integrations/lib/go
+      - dependency-name: github.com/MinecraftAuthentication/integrations/lib/go/v2
 
   - package-ecosystem: npm
     directory: /lib/js

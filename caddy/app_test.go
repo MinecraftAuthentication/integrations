@@ -10,7 +10,7 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 
-	mcauth "github.com/MinecraftAuthentication/integrations/lib/go"
+	mcauth "github.com/MinecraftAuthentication/integrations/lib/go/v2"
 )
 
 func TestModulesRegistered(t *testing.T) {

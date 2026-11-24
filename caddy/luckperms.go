@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	mcauth "github.com/MinecraftAuthentication/integrations/lib/go"
+	mcauth "github.com/MinecraftAuthentication/integrations/lib/go/v2"
 )
 
 // LuckPerms points the `luckperms` rule at a LuckPerms REST API

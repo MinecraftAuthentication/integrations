@@ -101,7 +101,7 @@ Then run the pre-tag steps for each component being released.
 **caddy**, if it needs a newer `lib/go`:
 - `lib/go/vX.Y.Z` must be resolvable first. With confirmation, push that tag on its own.
 - Then, in `caddy/`:
-  - `go get github.com/MinecraftAuthentication/integrations/lib/go@vX.Y.Z`
+  - `go get github.com/MinecraftAuthentication/integrations/lib/go/v2@vX.Y.Z`
   - remove any `replace` line from `go.mod`
   - `go mod tidy`
 - Rebuild: `./gradlew :caddy:build -Pmcauth.go.race=true`. These changes go into the release commit.
@@ -165,12 +165,12 @@ test "$(git describe --exact-match --tags --match 'v[0-9]*')" = "v$(sed -n 's/^v
 
 **lib_go** (the pushed tag is the release; check that it resolves):
 ```sh
-go list -m github.com/MinecraftAuthentication/integrations/lib/go@vX.Y.Z
+go list -m github.com/MinecraftAuthentication/integrations/lib/go/v2@vX.Y.Z
 ```
 
 **caddy**
 - Check that a clean build works:
-  `xcaddy build --with github.com/MinecraftAuthentication/integrations/caddy@vX.Y.Z`
+  `xcaddy build --with github.com/MinecraftAuthentication/integrations/caddy/v2@vX.Y.Z`
 - On the first release only, the user registers the module by hand at
   https://caddyserver.com/account/register-package. Tell them to.
 

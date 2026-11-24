@@ -13,7 +13,7 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"go.uber.org/zap"
 
-	mcauth "github.com/MinecraftAuthentication/integrations/lib/go"
+	mcauth "github.com/MinecraftAuthentication/integrations/lib/go/v2"
 )
 
 func init() {

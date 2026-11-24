@@ -1,4 +1,4 @@
-// Caddy module (github.com/MinecraftAuthentication/integrations/caddy). `assemble` also builds a Caddy
+// Caddy module (github.com/MinecraftAuthentication/integrations/caddy/v2). `assemble` also builds a Caddy
 // binary with the module built in, for local testing: build/go/bin/caddy
 plugins {
     id("mcauth.go")

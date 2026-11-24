@@ -1,4 +1,4 @@
-module github.com/MinecraftAuthentication/integrations/lib/go
+module github.com/MinecraftAuthentication/integrations/lib/go/v2
 
 go 1.25
 

@@ -13,7 +13,7 @@ import (
 
 	"go.uber.org/zap"
 
-	mcauth "github.com/MinecraftAuthentication/integrations/lib/go"
+	mcauth "github.com/MinecraftAuthentication/integrations/lib/go/v2"
 )
 
 type lpRequest struct {

@@ -92,14 +92,14 @@ After tagging:
 ## lib/go
 
 - [ ] After pushing `lib/go/vX.Y.Z`: check that
-      `go list -m github.com/MinecraftAuthentication/integrations/lib/go@vX.Y.Z` resolves it.
+      `go list -m github.com/MinecraftAuthentication/integrations/lib/go/v2@vX.Y.Z` resolves it.
 
 ## caddy
 
 Before tagging:
 
 - [ ] If `caddy` needs a newer `lib/go` (released in this or an earlier release): in `caddy/`,
-      `go get github.com/MinecraftAuthentication/integrations/lib/go@vX.Y.Z`, remove the `replace` line from `go.mod`
+      `go get github.com/MinecraftAuthentication/integrations/lib/go/v2@vX.Y.Z`, remove the `replace` line from `go.mod`
       if it's still there, and `go mod tidy`. `go.work` still points local builds at `../lib/go`.
       Releasing `lib/go` and `caddy` together needs `lib/go/vX.Y.Z` pushed first, so `go get` can resolve it: push that
       tag, update `caddy/go.mod`, commit, and only then tag `vX.Y.Z` and `caddy/vX.Y.Z` on that commit.
@@ -108,7 +108,7 @@ Before tagging:
 After tagging:
 
 - [ ] Check that a clean build works:
-      `xcaddy build --with github.com/MinecraftAuthentication/integrations/caddy@vX.Y.Z`.
+      `xcaddy build --with github.com/MinecraftAuthentication/integrations/caddy/v2@vX.Y.Z`.
 - [ ] First release only: register the module at
       [caddyserver.com/account/register-package](https://caddyserver.com/account/register-package) so it's listed on
       the download page. Later versions are picked up from the tags.

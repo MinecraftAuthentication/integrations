@@ -8,14 +8,14 @@ or YouTube, or anyone with a [LuckPerms](https://luckperms.net) permission.
 ## Install
 
 ```sh
-xcaddy build --with github.com/MinecraftAuthentication/integrations/caddy
+xcaddy build --with github.com/MinecraftAuthentication/integrations/caddy/v2
 ```
 
 or with Docker:
 
 ```dockerfile
 FROM caddy:2-builder AS builder
-RUN xcaddy build --with github.com/MinecraftAuthentication/integrations/caddy
+RUN xcaddy build --with github.com/MinecraftAuthentication/integrations/caddy/v2
 
 FROM caddy:2
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy

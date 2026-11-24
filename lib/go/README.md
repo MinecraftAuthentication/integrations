@@ -4,11 +4,11 @@ Go client for the [MinecraftAuth.me v2 API](https://minecraftauth.me/developers/
 dependency is `github.com/golang-jwt/jwt/v5`, for grant tokens. The [Caddy module](../../caddy) is built on it.
 
 ```sh
-go get github.com/MinecraftAuthentication/integrations/lib/go
+go get github.com/MinecraftAuthentication/integrations/lib/go/v2
 ```
 
 ```go
-import mcauth "github.com/MinecraftAuthentication/integrations/lib/go"
+import mcauth "github.com/MinecraftAuthentication/integrations/lib/go/v2"
 ```
 
 ## Membership checks

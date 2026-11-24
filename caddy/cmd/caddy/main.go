@@ -10,7 +10,7 @@ import (
 
 	_ "github.com/caddyserver/caddy/v2/modules/standard"
 
-	_ "github.com/MinecraftAuthentication/integrations/caddy"
+	_ "github.com/MinecraftAuthentication/integrations/caddy/v2"
 )
 
 func main() {
