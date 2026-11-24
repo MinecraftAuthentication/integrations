@@ -11,7 +11,7 @@ class FakeApi : AutoCloseable {
 
     data class Recorded(val method: String, val path: String, val query: String?, val headers: Map<String, String?>, val body: String)
 
-    data class Reply(val status: Int, val body: String, val contentType: String = "application/json")
+    data class Reply(val status: Int, val body: String, val contentType: String = "application/json", val headers: Map<String, String> = emptyMap())
 
     val requests = CopyOnWriteArrayList<Recorded>()
     var handler: (Recorded) -> Reply = { Reply(404, """{"error":"not found","status":404}""") }
@@ -35,13 +35,14 @@ class FakeApi : AutoCloseable {
         val reply = handler(recorded)
         val bytes = reply.body.toByteArray(StandardCharsets.UTF_8)
         exchange.responseHeaders.add("Content-Type", reply.contentType)
+        reply.headers.forEach { (name, value) -> exchange.responseHeaders.add(name, value) }
         exchange.sendResponseHeaders(reply.status, if (bytes.isEmpty()) -1 else bytes.size.toLong())
         if (bytes.isNotEmpty()) exchange.responseBody.use { it.write(bytes) }
         exchange.close()
     }
 
-    fun client(credentials: Credentials = Credentials.ServerToken("tok")) =
-        MinecraftAuth(MinecraftAuthConfig("Test/1.0", credentials, baseUrl))
+    fun client(credentials: Credentials = Credentials.ServerToken("tok"), maxRateLimitWaitMillis: Long = 10_000) =
+        MinecraftAuth(MinecraftAuthConfig("Test/1.0", credentials, baseUrl, maxRateLimitWaitMillis = maxRateLimitWaitMillis))
 
     override fun close() = server.stop(0)
 }

@@ -20,11 +20,21 @@ class ConfigurationException(message: String, status: Int) : MinecraftAuthExcept
 
 /**
  * The answer is temporarily unavailable: the MinecraftAuth bot isn't in a Discord server (409),
- * too many pending access requests (429), an upstream platform failed (502), a server error (5xx),
+ * too many pending access requests or rate limited (429, see [RateLimitedException]), an upstream platform failed
+ * (502), a server error (5xx),
  * or the API couldn't be reached at all.
  */
-class UnavailableException(message: String, status: Int? = null, cause: Throwable? = null) :
+open class UnavailableException(message: String, status: Int? = null, cause: Throwable? = null) :
     MinecraftAuthException(message, status, cause)
+
+/**
+ * The API is rate limiting this client (429), and waiting it out would take longer than
+ * [MinecraftAuthConfig.maxRateLimitWaitMillis]. Shorter waits are retried automatically. Until [retryAfterMillis] has
+ * passed, the client fails calls with this exception without sending them.
+ *
+ * @property retryAfterMillis how long to wait before trying again
+ */
+class RateLimitedException(message: String, val retryAfterMillis: Long) : UnavailableException(message, 429)
 
 /** The requested resource doesn't exist or is hidden by the player's privacy settings (404). */
 class NotFoundException(message: String) : MinecraftAuthException(message, 404)

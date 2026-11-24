@@ -45,6 +45,11 @@ Checks return `false, nil` when the player isn't linked or hides the account. Ot
 (`Status` is 0 when no response arrived); `IsConfig`, `IsTemporary` and `IsNotFound` classify them. Every method
 honours the context's deadline and cancellation.
 
+**Rate limits.** When the API rate limits the client (429 with `Retry-After`), a call waits and retries on its own, for
+up to `Client.MaxRateLimitWait` in all (10 seconds by default; negative never waits). If it would have to wait longer,
+it returns an error for which `IsRateLimited` (and `IsTemporary`) is true and `RetryAfter(err)` says how long to wait.
+Until that time has passed, later calls return that error right away without being sent.
+
 ## Lookups
 
 ```go

@@ -30,6 +30,8 @@ import java.util.concurrent.atomic.AtomicInteger
  * @property userAgent required by the API. Name your integration and its version, e.g. `MyPlugin/1.4`.
  * @property credentials how to authenticate. Membership checks need application credentials.
  * @property baseUrl the API host; every path already includes `/api/v2`.
+ * @property maxRateLimitWaitMillis when the API rate limits a call (429 with `Retry-After`), how long the call may
+ * block waiting to retry before it throws [RateLimitedException] instead. 0 never waits.
  */
 data class MinecraftAuthConfig @JvmOverloads constructor(
     val userAgent: String,
@@ -37,13 +39,16 @@ data class MinecraftAuthConfig @JvmOverloads constructor(
     val baseUrl: String = DEFAULT_BASE_URL,
     val connectTimeoutMillis: Int = 5_000,
     val readTimeoutMillis: Int = 10_000,
+    val maxRateLimitWaitMillis: Long = DEFAULT_MAX_RATE_LIMIT_WAIT_MILLIS,
 ) {
     init {
         require(userAgent.isNotBlank()) { "A User-Agent naming your integration is required by the MinecraftAuth.me API" }
+        require(maxRateLimitWaitMillis >= 0) { "maxRateLimitWaitMillis can't be negative" }
     }
 
     companion object {
         const val DEFAULT_BASE_URL: String = "https://minecraftauth.me"
+        const val DEFAULT_MAX_RATE_LIMIT_WAIT_MILLIS: Long = 10_000
     }
 }
 
@@ -56,7 +61,8 @@ data class MinecraftAuthConfig @JvmOverloads constructor(
  * Membership checks ([following], [subscribed], [discordPresent]) return `false` when the player isn't
  * linked or hides the account (HTTP 404). Other failures throw:
  * - [ConfigurationException] for 400/401/403, a mistake in the integration's setup
- * - [UnavailableException] for 409/429/5xx and network errors, a temporary problem
+ * - [UnavailableException] for 409/429/5xx and network errors, a temporary problem; [RateLimitedException] when
+ *   rate limited for longer than [MinecraftAuthConfig.maxRateLimitWaitMillis] (shorter limits are waited out)
  */
 class MinecraftAuth @JvmOverloads constructor(
     val config: MinecraftAuthConfig,

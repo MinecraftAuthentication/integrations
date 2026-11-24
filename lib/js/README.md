@@ -38,6 +38,11 @@ try {
 Checks resolve to `false` when the player isn't linked or hides the account. Other failures reject with a
 `MinecraftAuthError`, which has a `status` (0 when no response arrived).
 
+**Rate limits.** When the API rate limits the client (429 with `Retry-After`), a call waits and retries on its own, for
+up to `maxRateLimitWaitMs` in all (10 000 by default; 0 never waits). If it would have to wait longer, it rejects with
+a `RateLimitError` (check with `isRateLimited`), whose `retryAfterMs` says how long to wait. Until that time has
+passed, later calls reject with it right away without being sent.
+
 ## Lookups
 
 ```ts

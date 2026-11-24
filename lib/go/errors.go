@@ -5,13 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // APIError is returned for every failed request. Status is 0 when no response was received.
 type APIError struct {
 	Status  int
 	Message string
-	Err     error
+	// RetryAfter is set when the API rate limits the client (429 with Retry-After): how long to wait before trying
+	// again. See Client.MaxRateLimitWait.
+	RetryAfter time.Duration
+	Err        error
 }
 
 func (e *APIError) Error() string {
@@ -50,6 +56,41 @@ func IsNotFound(err error) bool {
 func IsConfig(err error) bool {
 	e, ok := asAPIError(err)
 	return ok && (e.Status == http.StatusBadRequest || e.Status == http.StatusUnauthorized || e.Status == http.StatusForbidden)
+}
+
+// IsRateLimited reports a 429 with a Retry-After: the API is rate limiting the client, for longer than
+// Client.MaxRateLimitWait (shorter limits are waited out). RetryAfter says how long to wait.
+func IsRateLimited(err error) bool {
+	e, ok := asAPIError(err)
+	return ok && e.Status == http.StatusTooManyRequests && e.RetryAfter > 0
+}
+
+// RetryAfter returns how long a rate limited call asks to wait, or 0 if err isn't a rate limit.
+func RetryAfter(err error) time.Duration {
+	if !IsRateLimited(err) {
+		return 0
+	}
+	e, _ := asAPIError(err)
+	return e.RetryAfter
+}
+
+// parseRetryAfter reads a Retry-After header: delay-seconds or an HTTP date. ok is false if it's missing or malformed.
+func parseRetryAfter(value string, now time.Time) (d time.Duration, ok bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, false
+	}
+	if seconds, err := strconv.ParseInt(value, 10, 64); err == nil {
+		if seconds < 0 {
+			return 0, false
+		}
+		return time.Duration(seconds) * time.Second, true
+	}
+	at, err := http.ParseTime(value)
+	if err != nil {
+		return 0, false
+	}
+	return max(at.Sub(now), 0), true
 }
 
 // IsTemporary reports a failure worth retrying later: 409 (bot not in the Discord server), 429, 5xx,

@@ -1,11 +1,16 @@
 import { anonymous, type Credentials } from "./credentials.js";
-import { MinecraftAuthError, errorForStatus, isNotFound, isRecord } from "./errors.js";
+import { MinecraftAuthError, RateLimitError, errorForStatus, isNotFound, isRecord, parseRetryAfter } from "./errors.js";
 import type { Platform } from "./platform.js";
 
 /** The MinecraftAuth.me API host. Every path already includes `/api/v2`. */
 export const DEFAULT_BASE_URL = "https://minecraftauth.me";
 
+/** {@link MinecraftAuthOptions.maxRateLimitWaitMs}'s default. */
+export const DEFAULT_MAX_RATE_LIMIT_WAIT_MS = 10_000;
+
 const MAX_BODY_BYTES = 1 << 20;
+const GRANT_REQUESTS = "/api/v2/grant-requests";
+const LIMIT_ALL = "*";
 
 export interface MinecraftAuthOptions {
   /** Required by the API. Name your integration and its version, e.g. `MyBot/1.2`. */
@@ -18,6 +23,12 @@ export interface MinecraftAuthOptions {
   timeoutMs?: number;
   /** Replaces the global `fetch`, e.g. for tests or a custom agent. */
   fetch?: typeof globalThis.fetch;
+  /**
+   * How long a call may wait in all, in milliseconds, when the API rate limits it (429 with `Retry-After`) before it
+   * rejects with a {@link RateLimitError} instead (default 10 000; 0 never waits). While a limit lasts, calls that
+   * can't wait it out are rejected without being sent.
+   */
+  maxRateLimitWaitMs?: number;
 }
 
 /** Options every call accepts. */
@@ -70,7 +81,8 @@ export interface GrantRequestStatus {
  *
  * Membership checks ({@link following}, {@link subscribed}, {@link discordPresent}) resolve to `false` when the
  * player isn't linked or hides the account (HTTP 404). Other failures reject with a {@link MinecraftAuthError};
- * classify them with `isConfig` / `isTemporary`.
+ * classify them with `isConfig` / `isTemporary`. Short rate limits are waited out; longer ones reject with a
+ * {@link RateLimitError}.
  */
 export class MinecraftAuth {
   readonly baseUrl: string;
@@ -78,6 +90,9 @@ export class MinecraftAuth {
   readonly #credentials: Credentials;
   readonly #timeoutMs: number;
   readonly #fetch: typeof globalThis.fetch;
+  readonly #maxRateLimitWaitMs: number;
+  /** Until when (epoch ms) the API asked us not to send calls, per {@link limitKey}. */
+  readonly #cooldowns = new Map<string, number>();
 
   constructor(options: MinecraftAuthOptions) {
     if (!options.userAgent?.trim()) {
@@ -88,6 +103,7 @@ export class MinecraftAuth {
     this.baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
     this.#timeoutMs = options.timeoutMs ?? 10_000;
     this.#fetch = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
+    this.#maxRateLimitWaitMs = Math.max(0, options.maxRateLimitWaitMs ?? DEFAULT_MAX_RATE_LIMIT_WAIT_MS);
   }
 
   /**
@@ -185,8 +201,8 @@ export class MinecraftAuth {
 
   /** Downloads the PEM-encoded RSA public key that signs grant tokens. Usually used through {@link KeySource}. */
   async fetchPublicKeyPem(options?: RequestOptions): Promise<string> {
-    const { status, body } = await this.#send("GET", "/rsa", undefined, undefined, options, "text/plain, */*");
-    if (status < 200 || status > 299) throw errorForStatus(status, body);
+    const { status, body, retryAfterMs } = await this.#send("GET", "/rsa", undefined, undefined, options, "text/plain, */*");
+    if (status < 200 || status > 299) throw errorForStatus(status, body, retryAfterMs);
     return body;
   }
 
@@ -212,7 +228,9 @@ export class MinecraftAuth {
     options: RequestOptions | undefined,
   ): Promise<unknown> {
     const response = await this.#send(method, path, query, body, options, "application/json");
-    if (response.status < 200 || response.status > 299) throw errorForStatus(response.status, response.body);
+    if (response.status < 200 || response.status > 299) {
+      throw errorForStatus(response.status, response.body, response.retryAfterMs);
+    }
     if (!response.body) return undefined;
     try {
       return JSON.parse(response.body);
@@ -221,6 +239,11 @@ export class MinecraftAuth {
     }
   }
 
+  /**
+   * Sends a call, waiting out rate limits (429 with `Retry-After`) for up to `maxRateLimitWaitMs` in all. A call made
+   * while an earlier one is still asked to wait isn't sent until then, so a rate limited client doesn't keep hitting
+   * the API. Resolves with the 429 when waiting it out would take too long.
+   */
   async #send(
     method: string,
     path: string,
@@ -228,7 +251,41 @@ export class MinecraftAuth {
     body: unknown,
     options: RequestOptions | undefined,
     accept: string,
-  ): Promise<{ status: number; body: string }> {
+  ): Promise<SentResponse> {
+    const key = limitKey(method, path);
+    let waited = 0;
+    for (;;) {
+      const wait = this.#cooldown(key);
+      if (wait > 0) {
+        if (waited + wait > this.#maxRateLimitWaitMs) {
+          throw new RateLimitError(`${method} ${path}: rate limited, retry in ${wait} ms`, wait);
+        }
+        await sleep(wait, options?.signal);
+        waited += wait;
+      }
+
+      const response = await this.#sendOnce(method, path, query, body, options, accept);
+      const retryAfterMs = response.retryAfterMs;
+      if (response.status !== 429 || retryAfterMs === undefined) return response;
+      this.#cooldowns.set(key, Math.max(this.#cooldowns.get(key) ?? 0, Date.now() + retryAfterMs));
+      if (waited + retryAfterMs > this.#maxRateLimitWaitMs) return response;
+    }
+  }
+
+  /** How long calls under `key` must still wait: the limit on every call, and on `key` in particular. */
+  #cooldown(key: string): number {
+    const until = Math.max(this.#cooldowns.get(LIMIT_ALL) ?? 0, this.#cooldowns.get(key) ?? 0);
+    return Math.max(0, until - Date.now());
+  }
+
+  async #sendOnce(
+    method: string,
+    path: string,
+    query: Record<string, string> | undefined,
+    body: unknown,
+    options: RequestOptions | undefined,
+    accept: string,
+  ): Promise<SentResponse> {
     let url = this.baseUrl + path;
     if (query) url += `?${new URLSearchParams(query)}`;
     const headers: Record<string, string> = { "User-Agent": this.#userAgent, Accept: accept };
@@ -247,7 +304,8 @@ export class MinecraftAuth {
 
     try {
       const response = await this.#fetch(url, init);
-      return { status: response.status, body: await readLimited(response) };
+      const retryAfterMs = response.status === 429 ? parseRetryAfter(response.headers.get("Retry-After")) : undefined;
+      return { status: response.status, body: await readLimited(response), retryAfterMs };
     } catch (err) {
       if (userSignal?.aborted) throw userSignal.reason;
       if (err instanceof MinecraftAuthError) throw err;
@@ -255,6 +313,21 @@ export class MinecraftAuth {
       throw new MinecraftAuthError(0, `${method} ${path}: ${reason}`, { cause: err });
     }
   }
+}
+
+/** A response's status and body, with a 429's `Retry-After` in milliseconds. */
+interface SentResponse {
+  status: number;
+  body: string;
+  retryAfterMs?: number | undefined;
+}
+
+/**
+ * Which of the API's limits a call counts against: starting access requests has a limit of its own, on top of the
+ * one on every call.
+ */
+function limitKey(method: string, path: string): string {
+  return method === "POST" && path === GRANT_REQUESTS ? `POST ${GRANT_REQUESTS}` : LIMIT_ALL;
 }
 
 async function readLimited(response: Response): Promise<string> {

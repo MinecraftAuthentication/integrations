@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -93,9 +94,80 @@ type Client struct {
 	Credentials Credentials
 	// HTTPClient defaults to a client with a 10 second timeout.
 	HTTPClient *http.Client
+	// MaxRateLimitWait is how long a call may wait in all when the API rate limits it (429 with Retry-After) before
+	// it returns the error instead; see IsRateLimited. Zero means DefaultMaxRateLimitWait; negative never waits.
+	// While a limit lasts, calls that can't wait it out fail without being sent.
+	MaxRateLimitWait time.Duration
+
+	limits *rateLimits
 }
 
+// DefaultMaxRateLimitWait is Client.MaxRateLimitWait's default.
+const DefaultMaxRateLimitWait = 10 * time.Second
+
 var defaultHTTPClient = &http.Client{Timeout: 10 * time.Second}
+
+// rateLimits remembers until when the API asked a client not to send calls, per limitKey.
+type rateLimits struct {
+	mu    sync.Mutex
+	until map[string]time.Time
+}
+
+// limitsMu guards initializing Client.limits, so the zero Client stays usable.
+var limitsMu sync.Mutex
+
+func (c *Client) rateLimits() *rateLimits {
+	limitsMu.Lock()
+	defer limitsMu.Unlock()
+	if c.limits == nil {
+		c.limits = &rateLimits{until: map[string]time.Time{}}
+	}
+	return c.limits
+}
+
+const (
+	limitAll           = "*"
+	grantRequestsPath  = "/api/v2/grant-requests"
+	limitGrantRequests = http.MethodPost + " " + grantRequestsPath
+)
+
+// limitKey is which of the API's limits a call counts against: starting access requests has a limit of its own, on
+// top of the one on every call.
+func limitKey(method, path string) string {
+	if method == http.MethodPost && path == grantRequestsPath {
+		return limitGrantRequests
+	}
+	return limitAll
+}
+
+// wait is how long calls under key must still wait: the limit on every call, and on key in particular.
+func (l *rateLimits) wait(key string, now time.Time) time.Duration {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	until := l.until[limitAll]
+	if t := l.until[key]; t.After(until) {
+		until = t
+	}
+	return max(until.Sub(now), 0)
+}
+
+func (l *rateLimits) hold(key string, until time.Time) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if until.After(l.until[key]) {
+		l.until[key] = until
+	}
+}
+
+func (c *Client) maxRateLimitWait() time.Duration {
+	switch {
+	case c.MaxRateLimitWait == 0:
+		return DefaultMaxRateLimitWait
+	case c.MaxRateLimitWait < 0:
+		return 0
+	}
+	return c.MaxRateLimitWait
+}
 
 // LinkedAccount is an account linked to an identity: either Identifier is set, or Hint is true
 // (the player shows the platform is linked, but not which account).
@@ -266,7 +338,7 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 		return &APIError{Message: "reading response: " + err.Error(), Err: err}
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return newAPIError(resp.StatusCode, data)
+		return responseError(resp, data)
 	}
 	if out == nil {
 		return nil
@@ -277,6 +349,9 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 	return nil
 }
 
+// raw sends a call, waiting out rate limits (429 with Retry-After) for up to MaxRateLimitWait in all. A call made
+// while an earlier one is still asked to wait isn't sent until then, so a rate limited client doesn't keep hitting the
+// API. It returns the 429 response when waiting it out would take too long.
 func (c *Client) raw(ctx context.Context, method, path string, query url.Values, body any) (*http.Response, error) {
 	if c.UserAgent == "" {
 		return nil, fmt.Errorf("mcauth: Client.UserAgent is required by the MinecraftAuth.me API")
@@ -285,13 +360,49 @@ func (c *Client) raw(ctx context.Context, method, path string, query url.Values,
 	if len(query) > 0 {
 		u += "?" + query.Encode()
 	}
-	var reader io.Reader
+	var encoded []byte
 	if body != nil {
-		encoded, err := json.Marshal(body)
-		if err != nil {
+		var err error
+		if encoded, err = json.Marshal(body); err != nil {
 			return nil, err
 		}
-		reader = bytes.NewReader(encoded)
+	}
+
+	limits, key, budget := c.rateLimits(), limitKey(method, path), c.maxRateLimitWait()
+	var waited time.Duration
+	for {
+		if wait := limits.wait(key, time.Now()); wait > 0 {
+			if waited+wait > budget {
+				return nil, &APIError{Status: http.StatusTooManyRequests, RetryAfter: wait,
+					Message: fmt.Sprintf("%s %s: rate limited, retry in %s", method, path, wait.Round(time.Millisecond))}
+			}
+			if err := sleep(ctx, wait); err != nil {
+				return nil, &APIError{Message: fmt.Sprintf("%s %s: %v", method, path, err), Err: err}
+			}
+			waited += wait
+		}
+
+		resp, err := c.send(ctx, method, u, path, encoded)
+		if err != nil || resp.StatusCode != http.StatusTooManyRequests {
+			return resp, err
+		}
+		retryAfter, ok := parseRetryAfter(resp.Header.Get("Retry-After"), time.Now())
+		if !ok {
+			return resp, nil // a cap, like on unanswered access requests, not a rate limit
+		}
+		limits.hold(key, time.Now().Add(retryAfter))
+		if waited+retryAfter > budget {
+			return resp, nil
+		}
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<16))
+		resp.Body.Close()
+	}
+}
+
+func (c *Client) send(ctx context.Context, method, u, path string, body []byte) (*http.Response, error) {
+	var reader io.Reader
+	if body != nil {
+		reader = bytes.NewReader(body)
 	}
 	req, err := http.NewRequestWithContext(ctx, method, u, reader)
 	if err != nil {
@@ -312,4 +423,24 @@ func (c *Client) raw(ctx context.Context, method, path string, query url.Values,
 		return nil, &APIError{Message: fmt.Sprintf("%s %s: %v", method, path, err), Err: err}
 	}
 	return resp, nil
+}
+
+// responseError is the error for a non-2xx response, with RetryAfter set for a rate limit.
+func responseError(resp *http.Response, body []byte) *APIError {
+	e := newAPIError(resp.StatusCode, body)
+	if resp.StatusCode == http.StatusTooManyRequests {
+		e.RetryAfter, _ = parseRetryAfter(resp.Header.Get("Retry-After"), time.Now())
+	}
+	return e
+}
+
+func sleep(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }

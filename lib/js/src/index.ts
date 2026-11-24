@@ -10,6 +10,7 @@
  */
 export {
   DEFAULT_BASE_URL,
+  DEFAULT_MAX_RATE_LIMIT_WAIT_MS,
   MinecraftAuth,
   type GrantRequest,
   type GrantRequestStatus,
@@ -20,7 +21,15 @@ export {
   type RequestOptions,
 } from "./client.js";
 export { anonymous, application, serverToken, serverTokenBasic, type Credentials } from "./credentials.js";
-export { InvalidTokenError, MinecraftAuthError, isConfig, isNotFound, isTemporary } from "./errors.js";
+export {
+  InvalidTokenError,
+  MinecraftAuthError,
+  RateLimitError,
+  isConfig,
+  isNotFound,
+  isRateLimited,
+  isTemporary,
+} from "./errors.js";
 export { PLATFORMS, parsePlatform, type Platform } from "./platform.js";
 export {
   ISSUER,

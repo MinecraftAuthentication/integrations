@@ -93,7 +93,7 @@ func (s *KeySource) fetchLocked(ctx context.Context) (*rsa.PublicKey, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, newAPIError(resp.StatusCode, pem)
+		return nil, responseError(resp, pem)
 	}
 	key, err := jwt.ParseRSAPublicKeyFromPEM(pem)
 	if err != nil {

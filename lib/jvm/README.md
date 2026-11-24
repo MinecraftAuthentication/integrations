@@ -99,6 +99,11 @@ Checks return `false` when the player isn't linked or hides the account. Every o
 a `CompletableFuture` and run on a small shared daemon pool, or pass your own `Executor` to the constructor:
 `MinecraftAuth(config, executor)`.
 
+**Rate limits.** When the API rate limits the client (429 with `Retry-After`), a call waits and retries on its own, for
+up to `maxRateLimitWaitMillis` in all (10 seconds by default; 0 never waits). If it would have to wait longer, it
+throws `RateLimitedException` (an `UnavailableException`) with `retryAfterMillis`. Until that time has passed, later
+calls throw it right away without being sent.
+
 ## Lookups
 
 ```kotlin
