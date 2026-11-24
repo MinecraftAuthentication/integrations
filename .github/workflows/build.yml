@@ -62,8 +62,9 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          # Gradle itself runs on 25 (Stonecutter)
-          java-version: 25
+          java-version: |
+            8
+            25
       - uses: gradle/actions/setup-gradle@v6
       - name: Build, vet and test (with -race)
         run: ./gradlew :lib:go:build :caddy:build -Pmcauth.go.race=true -Pmcauth.mods=false
@@ -85,8 +86,9 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          # Gradle itself runs on 25 (Stonecutter)
-          java-version: 25
+          java-version: |
+            8
+            25
       - uses: gradle/actions/setup-gradle@v6
       - name: Install, typecheck, test and build
         run: ./gradlew :lib:js:build -Pmcauth.mods=false
