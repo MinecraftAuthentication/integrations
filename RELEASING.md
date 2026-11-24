@@ -58,7 +58,8 @@ refactors). `build/` is gitignored, so the files don't get committed.
 - [ ] Publish each changed component (below).
 - [ ] Publish a GitHub release for `vX.Y.Z` with `scripts/changelog.sh all vX.Y.Z` as the notes. If the Minecraft
       integrations changed, attach the plugin, proxy and mod jars.
-- [ ] On `devel`: `./gradlew setVersion -PnewVersion=<next>-SNAPSHOT` and commit.
+- [ ] On `devel`: `./gradlew setVersion -PnewVersion=<next>-SNAPSHOT` and commit. `<next>` is the next patch version
+      (2.1.0 → 2.1.1-SNAPSHOT).
 
 Between releases, every successful build of `devel` is published as the `snapshot` GitHub pre-release
 (`.github/workflows/snapshot.yml`), with the plugin, proxy and mod jars. CI deletes and recreates that release and

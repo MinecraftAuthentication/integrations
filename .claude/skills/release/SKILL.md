@@ -202,7 +202,7 @@ git switch devel && git merge --ff-only main
 git commit -am "Back to <next>-SNAPSHOT"
 ```
 
-- `<next>` is usually the next minor.
+- `<next>` is the next patch version: after X.Y.Z, use X.Y.(Z+1)-SNAPSHOT (2.1.0 → 2.1.1-SNAPSHOT).
 - Push `devel` only with confirmation.
 - Finish with a summary: what was published where, with links, and which components were skipped as unchanged.
 
