@@ -48,25 +48,29 @@ include(":minecraft:proxy:bungee")
 
 // Mods: one Stonecutter source tree in minecraft/mod, one Gradle project per "<minecraft>-<loader>" target.
 // minecraft/mod/versions/<target>/gradle.properties holds each target's dependency versions.
-include(":minecraft:mod")
-stonecutter {
-    create(":minecraft:mod") {
-        versions(
-            "1.16.5-fabric" to "1.16.5",
-            "1.18.2-fabric" to "1.18.2",
-            "1.19.2-fabric" to "1.19.2",
-            "1.20.1-fabric" to "1.20.1",
-            "1.21.1-fabric" to "1.21.1",
-            "1.21.11-fabric" to "1.21.11",
-            "26.3-fabric" to "26.3",
-            "1.16.5-forge" to "1.16.5",
-            "1.18.2-forge" to "1.18.2",
-            "1.19.2-forge" to "1.19.2",
-            "1.20.1-forge" to "1.20.1",
-            "1.21.1-neoforge" to "1.21.1",
-            "1.21.11-neoforge" to "1.21.11",
-            "26.3-neoforge" to "26.3",
-        )
-        vcsVersion = "1.21.1-neoforge"
+// Loom sets up Minecraft for every target while configuring it, which takes minutes, so builds that don't need the
+// mods (the Go and JavaScript CI jobs) leave them out with -Pmcauth.mods=false.
+if (providers.gradleProperty("mcauth.mods").orNull != "false") {
+    include(":minecraft:mod")
+    stonecutter {
+        create(":minecraft:mod") {
+            versions(
+                "1.16.5-fabric" to "1.16.5",
+                "1.18.2-fabric" to "1.18.2",
+                "1.19.2-fabric" to "1.19.2",
+                "1.20.1-fabric" to "1.20.1",
+                "1.21.1-fabric" to "1.21.1",
+                "1.21.11-fabric" to "1.21.11",
+                "26.3-fabric" to "26.3",
+                "1.16.5-forge" to "1.16.5",
+                "1.18.2-forge" to "1.18.2",
+                "1.19.2-forge" to "1.19.2",
+                "1.20.1-forge" to "1.20.1",
+                "1.21.1-neoforge" to "1.21.1",
+                "1.21.11-neoforge" to "1.21.11",
+                "26.3-neoforge" to "26.3",
+            )
+            vcsVersion = "1.21.1-neoforge"
+        }
     }
 }
