@@ -25,7 +25,7 @@ Each file is a complete, working Caddyfile for one use case. Pick the closest on
 |---|---|
 | `MCAUTH_APP_ID` | your application's ID from <https://minecraftauth.me/developers> |
 | `MCAUTH_SESSION_KEY` | 32+ random characters (`openssl rand -hex 32`) |
-| `MCAUTH_SERVER_TOKEN` | your server token; only for Twitch, Discord, Patreon and YouTube rules |
+| `MCAUTH_APP_SECRET` | your application's secret; only for Twitch, Discord, Patreon and YouTube rules |
 | `LUCKPERMS_REST_KEY` | a key from `LUCKPERMS_REST_AUTH_KEYS`; only for `permission` and `group` rules |
 
 ## Running one

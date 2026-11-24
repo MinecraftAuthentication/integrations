@@ -157,7 +157,7 @@ func TestValidateNotAndAll(t *testing.T) {
 		"bad rule inside all":    {valid(all(Rule{Type: "steam_friend"})), "unknown rule"},
 		"bad rule inside not":    {valid(not(Rule{Type: "linked", Values: []string{"x"}})), "number of values"},
 		"rules on a non-all":     {valid(Rule{Type: "linked", All: []Rule{player("x")}}), "only all can contain rules"},
-		"nested needs token":     {valid(all(Rule{Type: "linked"}, not(Rule{Type: "twitch_follower"}))), "needs server_token"},
+		"nested needs token":     {valid(all(Rule{Type: "linked"}, not(Rule{Type: "twitch_follower"}))), "needs app_secret"},
 		"nested needs luckperms": {valid(all(not(Rule{Type: "group", Values: []string{"shunned"}}))), "needs the luckperms option"},
 	} {
 		if err := tc.app.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {

@@ -45,13 +45,13 @@ func TestProvisionDefaults(t *testing.T) {
 		t.Errorf("defaults: %+v", app)
 	}
 	if app.client.Credentials != nil {
-		t.Error("no server_token should mean anonymous requests")
+		t.Error("no app_secret should mean anonymous requests")
 	}
 	if app.client.UserAgent != "MinecraftAuth-Caddy/"+Version || app.keys.Client.UserAgent != app.client.UserAgent {
 		t.Errorf("user agent %q", app.client.UserAgent)
 	}
 	if app.keys.Client.Credentials != nil {
-		t.Error("the key fetch shouldn't send the server token")
+		t.Error("the key fetch shouldn't send credentials")
 	}
 	if err := app.Validate(); err != nil {
 		t.Fatal(err)
@@ -64,28 +64,39 @@ func TestProvisionDefaults(t *testing.T) {
 func TestProvisionKeepsSettings(t *testing.T) {
 	no := false
 	app := provision(t, &App{
-		AppID: "a", RedirectURL: "https://x/cb", ServerToken: "tok", OnAPIError: "allow", CookiePrefix: "x",
+		AppID: "a", RedirectURL: "https://x/cb", AppSecret: "sec", OnAPIError: "allow", CookiePrefix: "x",
 		SessionTTL: caddy.Duration(time.Hour), MembershipTTL: caddy.Duration(time.Second), Persist: &no,
 	})
 	if time.Duration(app.SessionTTL) != time.Hour || app.cache.ttl != time.Second || app.OnAPIError != "allow" || app.CookiePrefix != "x" || app.persist() {
 		t.Errorf("settings overridden: %+v", app)
 	}
-	if app.client.Credentials != mcauth.ServerToken("tok") {
+	if app.client.Credentials != (mcauth.ApplicationCredentials{ID: "a", Secret: "sec"}) {
 		t.Errorf("credentials = %#v", app.client.Credentials)
+	}
+}
+
+func TestProvisionLegacyServerToken(t *testing.T) {
+	app := provision(t, &App{AppID: "a", RedirectURL: "https://x/cb", ServerToken: "tok"})
+	if app.client.Credentials != mcauth.ServerToken("tok") { //nolint:staticcheck // the deprecated path
+		t.Errorf("credentials = %#v", app.client.Credentials)
+	}
+	app = provision(t, &App{AppID: "a", RedirectURL: "https://x/cb", AppSecret: "sec", ServerToken: "tok"})
+	if app.client.Credentials != (mcauth.ApplicationCredentials{ID: "a", Secret: "sec"}) {
+		t.Errorf("app_secret should win over server_token: %#v", app.client.Credentials)
 	}
 }
 
 func TestProvisionReplacesPlaceholders(t *testing.T) {
 	t.Setenv("MCAUTH_TEST_APP_ID", "from-env")
-	t.Setenv("MCAUTH_TEST_TOKEN", "env-token")
+	t.Setenv("MCAUTH_TEST_SECRET", "env-secret")
 	t.Setenv("MCAUTH_TEST_KEY", strings.Repeat("k", 32))
 	app := provision(t, &App{
 		AppID:       "{env.MCAUTH_TEST_APP_ID}",
-		ServerToken: "{env.MCAUTH_TEST_TOKEN}",
+		AppSecret:   "{env.MCAUTH_TEST_SECRET}",
 		RedirectURL: "https://{env.MCAUTH_TEST_APP_ID}.example/cb",
 		SessionKey:  "{env.MCAUTH_TEST_KEY}",
 	})
-	if app.AppID != "from-env" || app.ServerToken != "env-token" || app.RedirectURL != "https://from-env.example/cb" || app.SessionKey != strings.Repeat("k", 32) {
+	if app.AppID != "from-env" || app.AppSecret != "env-secret" || app.RedirectURL != "https://from-env.example/cb" || app.SessionKey != strings.Repeat("k", 32) {
 		t.Fatalf("placeholders not replaced: %+v", app)
 	}
 }
@@ -119,7 +130,7 @@ func TestSessionKeySharedAcrossRestarts(t *testing.T) {
 
 func TestValidateErrors(t *testing.T) {
 	valid := func() *App {
-		return &App{AppID: "a", RedirectURL: "https://x/cb", OnAPIError: "deny", ServerToken: "t", Realms: map[string]*Realm{}}
+		return &App{AppID: "a", RedirectURL: "https://x/cb", OnAPIError: "deny", AppSecret: "t", Realms: map[string]*Realm{}}
 	}
 	for name, tc := range map[string]struct {
 		mutate func(*App)
@@ -152,10 +163,10 @@ func TestValidateErrors(t *testing.T) {
 		"twitch tier 4": {func(a *App) {
 			a.Realms["r"] = &Realm{Rules: []Rule{{Type: "twitch_subscriber", Values: []string{"4"}}}}
 		}, "tier"},
-		"membership without token": {func(a *App) {
-			a.ServerToken = ""
+		"membership without credentials": {func(a *App) {
+			a.AppSecret = ""
 			a.Realms["r"] = &Realm{Rules: []Rule{{Type: "player", Values: []string{"Notch"}}, {Type: "youtube_member"}}}
-		}, "server_token"},
+		}, "app_secret"},
 	} {
 		app := valid()
 		tc.mutate(app)
@@ -167,7 +178,7 @@ func TestValidateErrors(t *testing.T) {
 
 func TestValidateAcceptsEveryRule(t *testing.T) {
 	app := &App{
-		AppID: "a", RedirectURL: "https://x/cb", OnAPIError: "allow", ServerToken: "t",
+		AppID: "a", RedirectURL: "https://x/cb", OnAPIError: "allow", AppSecret: "t",
 		SessionKey: strings.Repeat("k", 32), Scopes: []string{"discord", "YouTube"},
 		Realms: map[string]*Realm{"all": {Rules: []Rule{
 			{Type: "player", Values: []string{notch, "jeb_", "Dinnerbone"}},
@@ -186,7 +197,12 @@ func TestValidateAcceptsEveryRule(t *testing.T) {
 	if err := app.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	// local-only realms don't need a server token
+	// a legacy server token still satisfies membership rules
+	app.AppSecret, app.ServerToken = "", "t"
+	if err := app.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	// local-only realms don't need credentials
 	app.ServerToken = ""
 	app.Realms = map[string]*Realm{"local": {Rules: []Rule{{Type: "player", Values: []string{"Notch"}}, {Type: "linked"}}}}
 	if err := app.Validate(); err != nil {

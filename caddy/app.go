@@ -32,8 +32,13 @@ type App struct {
 	// AppID is your application's ID from https://minecraftauth.me/developers. Its registered redirect URLs
 	// must include RedirectURL.
 	AppID string `json:"app_id"`
-	// ServerToken is your server token from https://minecraftauth.me/developers. Only needed for membership
-	// rules (twitch_follower, discord_role, ...), which answer "does this player support me?".
+	// AppSecret is that application's secret. Only needed for membership rules (twitch_follower,
+	// discord_role, ...), which answer "does this player support me?", where "me" is the application's owner.
+	AppSecret string `json:"app_secret,omitempty"`
+	// ServerToken is a server token, used for membership rules when AppSecret is empty.
+	//
+	// Deprecated: server tokens were retired and stop working at the end of the API's v1 grace period; set
+	// AppSecret instead.
 	ServerToken string `json:"server_token,omitempty"`
 	// RedirectURL is where MinecraftAuth.me sends players back to: the absolute URL of a `mcauth_callback` route.
 	RedirectURL string `json:"redirect"`
@@ -137,14 +142,15 @@ func (r Rule) needsAPI() bool {
 // usesLuckPerms reports a rule answered by the LuckPerms REST API.
 func (r Rule) usesLuckPerms() bool { return r.Type == "permission" || r.Type == "group" }
 
-// needsServerToken reports a MinecraftAuth.me membership rule (not counting the rules inside an all).
-func (r Rule) needsServerToken() bool { return r.needsAPI() && !r.usesLuckPerms() && r.Type != "all" }
+// needsCredentials reports a MinecraftAuth.me membership rule (not counting the rules inside an all).
+func (r Rule) needsCredentials() bool { return r.needsAPI() && !r.usesLuckPerms() && r.Type != "all" }
 
 // Provision sets up the app.
 func (a *App) Provision(ctx caddy.Context) error {
 	a.logger = ctx.Logger()
 	repl := caddy.NewReplacer()
 	a.AppID = repl.ReplaceKnown(a.AppID, "")
+	a.AppSecret = repl.ReplaceKnown(a.AppSecret, "")
 	a.ServerToken = repl.ReplaceKnown(a.ServerToken, "")
 	a.RedirectURL = repl.ReplaceKnown(a.RedirectURL, "")
 	a.SessionKey = repl.ReplaceKnown(a.SessionKey, "")
@@ -171,8 +177,13 @@ func (a *App) Provision(ctx caddy.Context) error {
 		BaseURL:   a.APIBase,
 		UserAgent: "MinecraftAuth-Caddy/" + Version,
 	}
-	if a.ServerToken != "" {
-		a.client.Credentials = mcauth.ServerToken(a.ServerToken)
+	switch {
+	case a.AppSecret != "":
+		a.client.Credentials = mcauth.ApplicationCredentials{ID: a.AppID, Secret: a.AppSecret}
+	case a.ServerToken != "":
+		a.logger.Warn("mcauth: server_token is deprecated: server tokens were retired and will stop working; " +
+			"set app_secret to your application's secret from https://minecraftauth.me/developers instead")
+		a.client.Credentials = mcauth.ServerToken(a.ServerToken) //nolint:staticcheck // still accepted until retired
 	}
 	a.keys = &mcauth.KeySource{Client: &mcauth.Client{BaseURL: a.APIBase, UserAgent: a.client.UserAgent}}
 	a.cache = newMembershipCache(time.Duration(a.MembershipTTL))
@@ -304,8 +315,8 @@ func (a *App) validateRule(name string, rule Rule) error {
 			return fmt.Errorf("mcauth: realm %q uses %s, which needs the luckperms option", name, rule.Type)
 		}
 	}
-	if rule.needsServerToken() && a.ServerToken == "" {
-		return fmt.Errorf("mcauth: realm %q uses %s, which needs server_token", name, rule.Type)
+	if rule.needsCredentials() && a.AppSecret == "" && a.ServerToken == "" {
+		return fmt.Errorf("mcauth: realm %q uses %s, which needs app_secret", name, rule.Type)
 	}
 	return nil
 }

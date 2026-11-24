@@ -23,9 +23,8 @@ COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 
 ## Set up
 
-1. At <https://minecraftauth.me/developers>, create an **application** (it needs a linked Discord
-   account). Add your callback URL, e.g. `https://example.com/mcauth/callback`, to its redirect URLs.
-2. For membership rules, also copy your **server token** from the same page.
+1. At <https://minecraftauth.me/developers>, create an **application**. Add your callback URL, e.g. `https://example.com/mcauth/callback`, to its redirect URLs.
+2. For membership rules, also copy the application's **secret**. Membership rules run as you, the application's owner.
 3. Configure Caddy:
 
 ```caddyfile
@@ -33,7 +32,7 @@ COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 	mcauth {
 		app_id       {env.MCAUTH_APP_ID}
 		redirect     https://example.com/mcauth/callback
-		server_token {env.MCAUTH_SERVER_TOKEN}   # only for membership rules
+		app_secret   {env.MCAUTH_APP_SECRET}     # only for membership rules
 		session_key  {env.MCAUTH_SESSION_KEY}    # 32+ random characters
 
 		realm staff {
@@ -93,7 +92,8 @@ The [`examples/`](examples/) directory has a complete Caddyfile for each use cas
 |---|---|---|
 | `app_id` | required | your MinecraftAuth.me application ID |
 | `redirect` | required | absolute URL of your `mcauth_callback` route, registered on the application |
-| `server_token` | none | your server token; required by membership rules |
+| `app_secret` | none | your application's secret; required by membership rules. Keep it out of version control |
+| `server_token` | none | **deprecated**: a retired server token, used when `app_secret` isn't set. Logs a warning; stops working when MinecraftAuth.me retires server tokens |
 | `session_key` | random per start | encrypts cookies (AES-256-GCM). Set it, or every restart logs everyone out |
 | `session_ttl` | `24h` | how long a login lasts |
 | `membership_ttl` | `5m` | how long membership answers are cached |
@@ -106,7 +106,7 @@ The [`examples/`](examples/) directory has a complete Caddyfile for each use cas
 
 ### Realm rules
 
-| Rule | Lets in players who... | Needs `server_token` |
+| Rule | Lets in players who... | Needs `app_secret` |
 |---|---|---|
 | `player <uuid\|name>...` | are one of these Minecraft players | no |
 | `linked` | logged in with any MinecraftAuth.me account | no |
@@ -120,7 +120,7 @@ The [`examples/`](examples/) directory has a complete Caddyfile for each use cas
 | `permission <permission> [<context>=<value>...]` | have that LuckPerms permission (in those contexts) | no, needs `luckperms` |
 | `group <group> [<context>=<value>...]` | are in that LuckPerms group, directly or inherited (shorthand for `permission group.<group>`) | no, needs `luckperms` |
 
-"Your" means the owner of `server_token`.
+"Your" means the owner of the application.
 
 ### Combining rules
 

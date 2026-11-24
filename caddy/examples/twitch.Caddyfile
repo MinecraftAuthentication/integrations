@@ -1,13 +1,13 @@
 # Twitch followers and subscribers of the channel linked to your MinecraftAuth.me account.
-# Players need Twitch linked on MinecraftAuth.me; the membership rules need your server token.
+# Players need Twitch linked on MinecraftAuth.me; the membership rules need your application's secret.
 
 {
 	mcauth {
 		app_id {env.MCAUTH_APP_ID}
 		redirect https://example.com/mcauth/callback
 		session_key {env.MCAUTH_SESSION_KEY}
-		# https://minecraftauth.me/developers; "your channel" is the one linked to this token's owner
-		server_token {env.MCAUTH_SERVER_TOKEN}
+		# https://minecraftauth.me/developers; "your channel" is the one linked to this application's owner
+		app_secret {env.MCAUTH_APP_SECRET}
 
 		# ask players to link Twitch while they log in, if they haven't yet
 		scopes twitch

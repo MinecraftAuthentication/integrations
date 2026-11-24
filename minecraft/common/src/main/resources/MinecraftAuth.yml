@@ -4,9 +4,11 @@
 # This plugin/mod then decides who may join based on those links.
 
 api:
-  # Your server token from https://minecraftauth.me/developers. Membership checks (follower,
-  # subscriber, Discord role, ...) answer "does this player support ME?", where "me" is the owner of this token.
-  server-token: ""
+  # Create an application at https://minecraftauth.me/developers and paste its ID and secret here. Membership checks
+  # (follower, subscriber, Discord role, ...) answer "does this player support ME?", where "me" is the application's
+  # owner: you. Keep the secret private.
+  application-id: ""
+  application-secret: ""
 
   # How long, in seconds, to remember a membership answer before asking MinecraftAuth.me again.
   cache-seconds: 60

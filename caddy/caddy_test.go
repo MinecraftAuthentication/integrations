@@ -29,7 +29,7 @@ func TestCaddyfileAdapt(t *testing.T) {
 	cf := `{
 	mcauth {
 		app_id         abcdefghijklmnop
-		server_token   tok
+		app_secret     sec
 		redirect       https://example.com/mcauth/callback
 		session_key    0123456789abcdef0123456789abcdef
 		session_ttl    12h
@@ -74,7 +74,7 @@ example.com {
 		t.Fatal(err)
 	}
 	app := cfg.Apps.MCAuth
-	if app.AppID != "abcdefghijklmnop" || app.ServerToken != "tok" || app.OnAPIError != "allow" || app.Persist == nil || *app.Persist {
+	if app.AppID != "abcdefghijklmnop" || app.AppSecret != "sec" || app.OnAPIError != "allow" || app.Persist == nil || *app.Persist {
 		t.Fatalf("unexpected app %+v", app)
 	}
 	if time.Duration(app.SessionTTL) != 12*time.Hour || time.Duration(app.MembershipTTL) != time.Minute {
@@ -112,8 +112,8 @@ func TestValidate(t *testing.T) {
 	}
 	a := base()
 	a.Realms["r"] = &Realm{Rules: []Rule{{Type: "twitch_follower"}}}
-	if err := a.Validate(); err == nil || !strings.Contains(err.Error(), "server_token") {
-		t.Errorf("membership rule without server_token: %v", err)
+	if err := a.Validate(); err == nil || !strings.Contains(err.Error(), "app_secret") {
+		t.Errorf("membership rule without app_secret: %v", err)
 	}
 	a = base()
 	a.Realms["r"] = &Realm{Rules: []Rule{{Type: "player"}}}
@@ -126,7 +126,7 @@ func TestValidate(t *testing.T) {
 		t.Error("relative redirect accepted")
 	}
 	a = base()
-	a.ServerToken = "t"
+	a.AppSecret = "t"
 	a.Realms["r"] = &Realm{Rules: []Rule{{Type: "twitch_subscriber", Values: []string{"4"}}}}
 	if err := a.Validate(); err == nil {
 		t.Error("tier 4 accepted")
@@ -165,7 +165,7 @@ func newFakeAPI(t *testing.T) *fakeAPI {
 			_ = pem.Encode(w, &pem.Block{Type: "PUBLIC KEY", Bytes: der})
 		case strings.HasPrefix(r.URL.Path, "/api/v2/"):
 			f.requests.Add(1)
-			if r.Header.Get("Authorization") != "Bearer tok" {
+			if id, secret, ok := r.BasicAuth(); !ok || id != "abcdefghijklmnop" || secret != "sec" {
 				w.WriteHeader(http.StatusForbidden)
 				return
 			}
@@ -199,7 +199,7 @@ func newApp(t *testing.T, f *fakeAPI, onAPIError string) *App {
 	t.Helper()
 	app := &App{
 		AppID:       "abcdefghijklmnop",
-		ServerToken: "tok",
+		AppSecret:   "sec",
 		RedirectURL: "https://example.com/mcauth/callback",
 		SessionKey:  "0123456789abcdef0123456789abcdef",
 		OnAPIError:  onAPIError,

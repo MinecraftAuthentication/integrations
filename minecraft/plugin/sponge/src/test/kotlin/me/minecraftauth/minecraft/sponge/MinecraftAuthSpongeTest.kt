@@ -59,7 +59,7 @@ class MinecraftAuthSpongeTest {
 
     @Test
     fun `constructing the plugin writes the default config`() {
-        assertTrue(File(dir, Settings.FILE_NAME).readText().contains("server-token"))
+        assertTrue(File(dir, Settings.FILE_NAME).readText().contains("application-id"))
     }
 
     @Test

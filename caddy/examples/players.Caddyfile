@@ -1,4 +1,4 @@
-# An allowlist of specific Minecraft players. No server token needed.
+# An allowlist of specific Minecraft players. No app_secret needed.
 # Prefer UUIDs: names can change hands, UUIDs can't. Names are matched case-insensitively.
 
 {

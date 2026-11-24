@@ -20,7 +20,9 @@ under `me.minecraftauth.libs`.
 
 1. Put the jar in `plugins/` (or `mods/`) and start the server once. That writes
    `MinecraftAuth.yml` (mods: `config/minecraftauth/MinecraftAuth.yml`).
-2. Paste your server token from <https://minecraftauth.me/developers> into `api.server-token`.
+2. Create an application at <https://minecraftauth.me/developers> and paste its ID and secret into
+   `api.application-id` and `api.application-secret`. Membership checks run as you, the application's owner.
+   (An older `api.server-token` still works until MinecraftAuth.me retires server tokens, with a warning at startup.)
 3. Pick your `gatekeeper.conditions` and run `/minecraftauth reload` (alias `/mcauth`).
 
 ```yaml
@@ -54,7 +56,7 @@ and players with the `minecraftauth.bypass` permission skip the checks too. Wher
 platform is in [Commands and permissions](#commands-and-permissions).
 
 **When MinecraftAuth.me is unreachable**, `on-api-error: deny` (the default) keeps players out with
-the `messages.error` text, and `allow` lets them in. A misconfigured token (HTTP 400/401/403)
+the `messages.error` text, and `allow` lets them in. Misconfigured credentials (HTTP 400/401/403)
 always denies.
 
 ## Proxies and offline mode
@@ -88,7 +90,7 @@ There is no setting that lets every Bedrock player in.
 
 | Command | Who can run it | What it does |
 |---|---|---|
-| `/minecraftauth` (alias `/mcauth`) | everyone | Shows the version and how many conditions are active, or that no server token is set |
+| `/minecraftauth` (alias `/mcauth`) | everyone | Shows the version and how many conditions are active, or that no credentials are set |
 | `/minecraftauth reload` | `minecraftauth.reload` | Re-reads `MinecraftAuth.yml` and clears the cached answers |
 
 | Permission | Spigot / Paper / Folia | Velocity | BungeeCord | Sponge | Fabric / Forge / NeoForge |
@@ -112,11 +114,12 @@ the conditions passed. `messages.error` means the check itself failed. The conso
 
 **Everyone gets kicked with `messages.error`:**
 
-- The server token is wrong, or belongs to a different account. The console shows
-  `MinecraftAuth.me rejected a check because of a configuration problem`. Copy the token again from
-  <https://minecraftauth.me/developers> and run `/mcauth reload`.
+- The application ID or secret is wrong, or the application belongs to a different account. The console
+  shows `MinecraftAuth.me rejected a check because of a configuration problem`. Copy them again from
+  <https://minecraftauth.me/developers> (rotate the secret if you lost it) and run `/mcauth reload`.
+  A retired `api.server-token` gives the same error.
 - A `DiscordServer` or `DiscordRole` condition needs the MinecraftAuth bot in that Discord server,
-  and the Discord account linked to your token must own the server or have Administrator or Manage
+  and the Discord account linked to your MinecraftAuth.me account must own the server or have Administrator or Manage
   Messages there. Without that you get the same configuration error.
 - MinecraftAuth.me, Twitch, Discord, ... can't be reached and `on-api-error` is `deny`. The console
   shows `Couldn't check '<condition>' for <name>`. Set `on-api-error: allow` if you'd rather let
@@ -127,10 +130,10 @@ the conditions passed. `messages.error` means the check itself failed. The conso
 - The player hasn't linked their Minecraft account at <https://minecraftauth.me>, or hasn't linked
   the platform the condition needs (Twitch for `TwitchFollower()`, Discord for `DiscordRole(...)`, ...).
 - The server or proxy sees offline UUIDs; see [Proxies and offline mode](#proxies-and-offline-mode).
-- The token is from a different account than the channel, Patreon or Discord server you mean.
-  Membership checks ask "does this player support the owner of this token?".
+- The application belongs to a different account than the channel, Patreon or Discord server you
+  mean. Membership checks ask "does this player support the owner of this application?".
 
-**Nobody is checked at all:** with no `api.server-token` the gatekeeper is off and the console says
+**Nobody is checked at all:** without `api.application-id` and `api.application-secret` the gatekeeper is off and the console says
 so at startup. A condition that doesn't parse is skipped with `Ignoring invalid condition '...'`;
 if every condition is invalid, the gatekeeper is off too.
 
@@ -151,8 +154,8 @@ ID".
   are now one jar per Minecraft version and loader (`MinecraftAuth-Fabric-<mc>`,
   `MinecraftAuth-Forge-<mc>`, `MinecraftAuth-Neoforge-<mc>`).
 - **Start from a fresh config.** Move the old `MinecraftAuth.yml` aside, start the server once so the
-  v2 file is written, then copy your server token, conditions and bypass entries into it. Mods now
-  keep their config in `config/minecraftauth/MinecraftAuth.yml`. If the token ends up missing, the
+  v2 file is written, then copy your conditions and bypass entries into it, and set up an application (see [Setup](#setup)). Mods now
+  keep their config in `config/minecraftauth/MinecraftAuth.yml`. Without credentials, the
   gatekeeper stays off and says so in the console.
 - **Conditions keep working.** `DiscordRole("guild id", "role")` works as before, and
   `DiscordRole("role id")` with just a role ID works too. A role *name* without its guild ID is

@@ -18,7 +18,7 @@ class GatekeeperResult private constructor(
         /** No condition passed, or the API failed and `on-api-error` is `deny`. */
         DENIED,
 
-        /** No conditions are configured for this realm (or no server token is set). */
+        /** No conditions are configured for this realm (or no credentials are set). */
         NOT_ENABLED,
     }
 

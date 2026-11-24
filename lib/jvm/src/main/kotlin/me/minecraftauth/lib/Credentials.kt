@@ -16,9 +16,14 @@ sealed class Credentials {
     }
 
     /**
-     * A creator's server token from https://minecraftauth.me/developers, sent as `Bearer`.
-     * Membership checks answer whether a player follows, subscribes to or supports the token's owner.
+     * A creator's server token, sent as `Bearer`. Membership checks answer whether a player follows, subscribes to
+     * or supports the token's owner.
      */
+    @Deprecated(
+        "Server tokens were retired: no new ones are issued, and existing ones stop working at the end of the API's v1 " +
+            "grace period. Create an application at https://minecraftauth.me/developers and use Application(id, secret).",
+        ReplaceWith("Credentials.Application(applicationId, secret)"),
+    )
     class ServerToken(private val token: String) : Credentials() {
         init {
             require(token.isNotBlank()) { "Server token must not be blank" }
@@ -29,14 +34,21 @@ sealed class Credentials {
     }
 
     /** The legacy `uid:token` form of a server token, sent as `Basic`. */
+    @Deprecated(
+        "Server tokens were retired: no new ones are issued, and existing ones stop working at the end of the API's v1 " +
+            "grace period. Create an application at https://minecraftauth.me/developers and use Application(id, secret).",
+        ReplaceWith("Credentials.Application(applicationId, secret)"),
+    )
     class ServerTokenBasic(private val uid: String, private val token: String) : Credentials() {
         override fun authorizationHeader(): String = basic(uid, token)
         override fun toString(): String = "Credentials.ServerTokenBasic($uid, ***)"
     }
 
     /**
-     * Application credentials. Required for access (grant) requests. Membership checks made with them
-     * run against the application owner. Never ship the secret inside something distributed to players.
+     * Application credentials from https://minecraftauth.me/developers. Membership checks made with any of a user's
+     * applications answer whether a player follows, subscribes to or supports that user, the application's owner.
+     * Also required for access (grant) requests. Keeping the secret in your own server's config is fine; never ship
+     * it inside something distributed to players.
      */
     class Application(val applicationId: String, private val secret: String) : Credentials() {
         init {

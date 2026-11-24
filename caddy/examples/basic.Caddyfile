@@ -1,5 +1,5 @@
 # The smallest setup: anyone who logs in with a MinecraftAuth.me account gets in.
-# No server token needed.
+# No app_secret needed.
 #
 #   MCAUTH_APP_ID=... MCAUTH_SESSION_KEY=... caddy run --config basic.Caddyfile
 

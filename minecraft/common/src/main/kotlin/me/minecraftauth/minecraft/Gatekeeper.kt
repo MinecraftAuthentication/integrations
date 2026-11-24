@@ -16,7 +16,7 @@ class Gatekeeper(
     private val logger: PlatformLogger,
 ) {
     private val rateLimited = RateLimitedLog(logger)
-    private val enabled = settings.serverToken != null
+    private val enabled = settings.hasCredentials
     private val realms: Map<String?, RealmSettings>
 
     init {
@@ -25,12 +25,20 @@ class Gatekeeper(
         all.putAll(settings.servers)
         realms = all.mapValues { (name, realm) -> realm.copy(conditions = realm.conditions.filter { validate(name, it) }) }
 
+        if ((settings.applicationId == null) != (settings.applicationSecret == null)) {
+            logger.warn("Only one of api.application-id and api.application-secret is set in ${Settings.FILE_NAME}; both are needed")
+        }
         if (!enabled) {
             if (realms.values.any { it.conditions.isNotEmpty() }) {
-                logger.warn("No server token is set in ${Settings.FILE_NAME} (api.server-token), so no conditions are checked. " +
-                    "Get one at https://minecraftauth.me/developers")
+                logger.warn("No application credentials are set in ${Settings.FILE_NAME} (api.application-id and " +
+                    "api.application-secret), so no conditions are checked. Create an application at https://minecraftauth.me/developers")
             }
         } else {
+            if (settings.usesLegacyToken) {
+                logger.warn("api.server-token in ${Settings.FILE_NAME} is deprecated: server tokens were retired and will stop " +
+                    "working. Create an application at https://minecraftauth.me/developers and set api.application-id and " +
+                    "api.application-secret instead")
+            }
             val count = realms.values.sumOf { it.conditions.size }
             val serverRealms = realms.keys.count { it != null && realms[it]!!.conditions.isNotEmpty() }
             logger.info("Gatekeeper is checking $count condition${if (count == 1) "" else "s"}" +
@@ -75,7 +83,7 @@ class Gatekeeper(
             } catch (e: ConfigurationException) {
                 failure = failure ?: e
                 rateLimited.warn("config:${e.status}", "MinecraftAuth.me rejected a check because of a configuration problem " +
-                    "(is api.server-token correct, and is the bot in your Discord server?): ${e.message}")
+                    "(are api.application-id and api.application-secret correct, and is the bot in your Discord server?): ${e.message}")
             } catch (e: MinecraftAuthException) {
                 failure = failure ?: e
                 rateLimited.warn("unavailable", "Couldn't check '$condition' for $name: ${e.message}")

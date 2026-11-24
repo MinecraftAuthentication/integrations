@@ -116,14 +116,14 @@ abstract class ModRuntimeTest : DefaultTask() {
         pass("server started")
 
         val config = File(dir, "config/minecraftauth/MinecraftAuth.yml")
-        check(config.isFile && config.readText().contains("server-token")) { "default config was not written to $config" }
+        check(config.isFile && config.readText().contains("application-id")) { "default config was not written to $config" }
         pass("default config written to config/minecraftauth/MinecraftAuth.yml")
-        console.await("startup warning about the missing token", Regex("""No server token is set in MinecraftAuth\.yml"""), 0)
-        pass("mod initialised (gatekeeper warned about the missing token)")
+        console.await("startup warning about the missing credentials", Regex("""No application credentials are set in MinecraftAuth\.yml"""), 0)
+        pass("mod initialised (gatekeeper warned about the missing credentials)")
 
         console.send("minecraftauth")
         console.await("/minecraftauth version line", Regex("""MinecraftAuth v${Regex.escape(version)} \(${Regex.escape(platform)}\)"""), 60)
-        console.await("/minecraftauth status line", Regex("""No server token configured; the gatekeeper is off\."""), 60)
+        console.await("/minecraftauth status line", Regex("""No application credentials configured; the gatekeeper is off\."""), 60)
         pass("/minecraftauth registered and reports v$version ($platform)")
 
         config.writeText(TEST_CONFIG)
@@ -295,7 +295,8 @@ abstract class ModRuntimeTest : DefaultTask() {
 
         val TEST_CONFIG = """
             api:
-              server-token: "runtime-test-token"
+              application-id: "RuntimeTestApp01"
+              application-secret: "runtime-test-secret"
               cache-seconds: 60
             gatekeeper:
               bypass:

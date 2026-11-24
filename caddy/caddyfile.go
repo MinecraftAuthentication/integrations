@@ -23,7 +23,8 @@ func init() {
 //
 //	mcauth {
 //	    app_id         <id>
-//	    server_token   <token>
+//	    app_secret     <secret>
+//	    server_token   <token>                (deprecated: use app_secret)
 //	    redirect       <url>
 //	    session_key    <secret>
 //	    session_ttl    <duration>
@@ -63,7 +64,7 @@ func parseGlobal(d *caddyfile.Dispenser, _ any) (any, error) {
 	for d.NextBlock(0) {
 		key := d.Val()
 		switch key {
-		case "app_id", "server_token", "redirect", "session_key", "on_api_error", "cookie_prefix", "api_base":
+		case "app_id", "app_secret", "server_token", "redirect", "session_key", "on_api_error", "cookie_prefix", "api_base":
 			if !d.NextArg() {
 				return nil, d.ArgErr()
 			}
@@ -71,6 +72,8 @@ func parseGlobal(d *caddyfile.Dispenser, _ any) (any, error) {
 			switch key {
 			case "app_id":
 				app.AppID = v
+			case "app_secret":
+				app.AppSecret = v
 			case "server_token":
 				app.ServerToken = v
 			case "redirect":

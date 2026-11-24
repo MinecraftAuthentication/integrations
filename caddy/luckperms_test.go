@@ -235,7 +235,7 @@ func TestValidateLuckPerms(t *testing.T) {
 			Realms:    map[string]*Realm{"r": {Rules: []Rule{{Type: "permission", Values: []string{"site.admin", "server=survival"}}}}},
 		}
 	}
-	// luckperms rules don't need a server token
+	// luckperms rules don't need app_secret
 	if err := valid().Validate(); err != nil {
 		t.Fatal(err)
 	}

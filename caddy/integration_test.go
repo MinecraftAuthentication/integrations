@@ -43,7 +43,7 @@ func TestEndToEnd(t *testing.T) {
 	}
 	mcauth {
 		app_id       abcdefghijklmnop
-		server_token tok
+		app_secret   sec
 		redirect     ` + site + `/mcauth/callback
 		session_key  0123456789abcdef0123456789abcdef
 		api_base     ` + f.srv.URL + `

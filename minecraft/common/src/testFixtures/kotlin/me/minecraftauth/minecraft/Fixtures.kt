@@ -64,20 +64,24 @@ class RecordingLogger : PlatformLogger {
 }
 
 /**
- * A `MinecraftAuth.yml` with a server token, `on-api-error: deny`, denied message `&cnope`, error message `&cbroken`
+ * A `MinecraftAuth.yml` with application credentials (and [serverToken], if not blank), `on-api-error: deny`, denied message `&cnope`, error message `&cbroken`
  * and one list item per condition. [bypass] replaces the bundled bypass list. [extra] is appended under `gatekeeper:`
  * (indent it by 2).
  */
 fun testConfig(
     vararg conditions: String,
     extra: String = "",
-    token: String = "tok",
+    applicationId: String = "AppAppAppAppApp1",
+    applicationSecret: String = "secret",
+    serverToken: String = "",
     bypassAdmins: Boolean = true,
     onApiError: String = "deny",
     bypass: List<String> = emptyList(),
 ): String = buildString {
     appendLine("api:")
-    appendLine("  server-token: \"$token\"")
+    appendLine("  application-id: \"$applicationId\"")
+    appendLine("  application-secret: \"$applicationSecret\"")
+    if (serverToken.isNotBlank()) appendLine("  server-token: \"$serverToken\"")
     appendLine("gatekeeper:")
     appendLine("  bypass: [" + bypass.joinToString { "\"$it\"" } + "]")
     appendLine("  bypass-admins: $bypassAdmins")

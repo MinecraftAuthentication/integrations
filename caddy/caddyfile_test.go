@@ -72,7 +72,7 @@ func TestCaddyfileOmitsUnsetOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"server_token", "session_key", "session_ttl", "persist", "scopes", "api_base"} {
+	for _, key := range []string{"app_secret", "server_token", "session_key", "session_ttl", "persist", "scopes", "api_base"} {
 		if strings.Contains(out, `"`+key+`"`) {
 			t.Errorf("unset %s should be omitted:\n%s", key, out)
 		}
@@ -170,7 +170,7 @@ func TestExampleCaddyfileAdapts(t *testing.T) {
 func TestEveryExampleLoads(t *testing.T) {
 	t.Setenv("MCAUTH_APP_ID", "app")
 	t.Setenv("MCAUTH_SESSION_KEY", strings.Repeat("k", 32))
-	t.Setenv("MCAUTH_SERVER_TOKEN", "tok")
+	t.Setenv("MCAUTH_APP_SECRET", "sec")
 	t.Setenv("LUCKPERMS_REST_KEY", "key")
 	files, err := filepath.Glob("examples/*Caddyfile")
 	if err != nil || len(files) < 2 {

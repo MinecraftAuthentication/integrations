@@ -1,5 +1,6 @@
 package me.minecraftauth.minecraft
 
+import me.minecraftauth.lib.Credentials
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
@@ -25,7 +26,11 @@ class SettingsTest {
     fun `default config is written and parses`(@TempDir dir: File) {
         val settings = Settings.load(dir)
         assertTrue(File(dir, Settings.FILE_NAME).isFile)
+        assertNull(settings.applicationId)
+        assertNull(settings.applicationSecret)
         assertNull(settings.serverToken)
+        assertFalse(settings.hasCredentials)
+        assertFalse(File(dir, Settings.FILE_NAME).readText().contains("server-token"))
         assertEquals(60, settings.cacheSeconds)
         assertTrue(settings.bypassAdmins)
         assertEquals(ApiErrorPolicy.DENY, settings.onApiError)
@@ -38,7 +43,7 @@ class SettingsTest {
 
     @Test
     fun `an existing config is not overwritten`(@TempDir dir: File) {
-        val yaml = "api:\n  server-token: \"mine\"\n"
+        val yaml = "api:\n  application-id: \"mine\"\n"
         load(dir, yaml)
         assertEquals(yaml, File(dir, Settings.FILE_NAME).readText())
     }
@@ -53,9 +58,12 @@ class SettingsTest {
 
     @Test
     fun `a partial config fills in the defaults`(@TempDir dir: File) {
-        val settings = load(dir, "api:\n  server-token: \" tok \"\ngatekeeper:\n  messages:\n    denied: \"&cgo away\"\n")
+        val settings = load(dir, "api:\n  application-id: \" app \"\n  application-secret: \" sec \"\ngatekeeper:\n  messages:\n    denied: \"&cgo away\"\n")
 
-        assertEquals("tok", settings.serverToken)
+        assertEquals("app", settings.applicationId)
+        assertEquals("sec", settings.applicationSecret)
+        assertTrue(settings.hasApplication)
+        assertNull(settings.serverToken)
         assertEquals(defaults.cacheSeconds, settings.cacheSeconds)
         assertEquals(defaults.bypassAdmins, settings.bypassAdmins)
         assertEquals(defaults.onApiError, settings.onApiError)
@@ -67,7 +75,7 @@ class SettingsTest {
 
     @Test
     fun `a config without a gatekeeper section uses the default gatekeeper`(@TempDir dir: File) {
-        val settings = load(dir, "api:\n  server-token: \"tok\"\n")
+        val settings = load(dir, "api:\n  application-id: \"app\"\n  application-secret: \"sec\"\n")
         assertEquals(defaults.global, settings.global)
     }
 
@@ -86,8 +94,30 @@ class SettingsTest {
     }
 
     @Test
-    fun `a blank token means no token`(@TempDir dir: File) {
-        assertNull(load(dir, "api:\n  server-token: \"   \"\n").serverToken)
+    fun `blank credentials mean none`(@TempDir dir: File) {
+        val settings = load(dir, "api:\n  application-id: \"  \"\n  application-secret: \"\"\n  server-token: \"   \"\n")
+        assertNull(settings.applicationId)
+        assertNull(settings.applicationSecret)
+        assertNull(settings.serverToken)
+        assertFalse(settings.hasCredentials)
+        assertEquals(Credentials.None, settings.credentials())
+    }
+
+    @Test
+    fun `a legacy server token is read and used when there's no application`(@TempDir dir: File) {
+        val settings = load(dir, "api:\n  server-token: \" tok \"\n")
+        assertEquals("tok", settings.serverToken)
+        assertTrue(settings.usesLegacyToken)
+        assertTrue(settings.hasCredentials)
+        @Suppress("DEPRECATION")
+        assertTrue(settings.credentials() is Credentials.ServerToken)
+    }
+
+    @Test
+    fun `an application wins over a legacy server token`(@TempDir dir: File) {
+        val settings = load(dir, "api:\n  application-id: \"app\"\n  application-secret: \"sec\"\n  server-token: \"tok\"\n")
+        assertFalse(settings.usesLegacyToken)
+        assertEquals("Credentials.Application(app, ***)", settings.credentials().toString())
     }
 
     @ParameterizedTest

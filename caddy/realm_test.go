@@ -40,7 +40,7 @@ func newRecordingApp(t *testing.T, answer func(*http.Request) (int, string)) (*A
 	}))
 	t.Cleanup(srv.Close)
 	app := &App{
-		client: &mcauth.Client{BaseURL: srv.URL, UserAgent: "Test/1.0", Credentials: mcauth.ServerToken("tok")},
+		client: &mcauth.Client{BaseURL: srv.URL, UserAgent: "Test/1.0", Credentials: mcauth.ApplicationCredentials{ID: "a", Secret: "sec"}},
 		lp:     newLuckPermsClient(&LuckPerms{URL: srv.URL}),
 		cache:  newMembershipCache(time.Minute),
 		logger: zap.NewNop(),

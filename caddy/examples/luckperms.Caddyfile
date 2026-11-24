@@ -1,6 +1,6 @@
 # Gate routes with the permissions and groups you manage in game, through the LuckPerms REST API
 # (https://luckperms.net/wiki/Standalone-and-REST-API) connected to your servers' LuckPerms database.
-# No server token needed.
+# No app_secret needed.
 
 {
 	mcauth {

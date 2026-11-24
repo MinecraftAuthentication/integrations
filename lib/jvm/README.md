@@ -52,7 +52,8 @@ import java.util.UUID
 val mcauth = MinecraftAuth(
     MinecraftAuthConfig(
         userAgent = "MyPlugin/1.2", // required by the API: name your integration and its version
-        credentials = Credentials.ServerToken(System.getenv("MCAUTH_TOKEN")), // from https://minecraftauth.me/developers
+        // an application from https://minecraftauth.me/developers: checks run as you, its owner
+        credentials = Credentials.Application(System.getenv("MCAUTH_APP_ID"), System.getenv("MCAUTH_APP_SECRET")),
     )
 )
 
@@ -66,7 +67,7 @@ try {
     mcauth.discordRole(uuid, "Subscriber", serverId = "987654321098765432")  // or by name, in that server
     mcauth.discordPresent(uuid, "987654321098765432")                        // in a Discord server
 } catch (e: ConfigurationException) {
-    // 400, 401, 403: check the token, role or server ID. Retrying won't help.
+    // 400, 401, 403: check the credentials, role or server ID. Retrying won't help.
 } catch (e: UnavailableException) {
     // network error, 409, 429, 5xx: try again later
 }
@@ -80,7 +81,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 MinecraftAuth mcauth = new MinecraftAuth(
-        new MinecraftAuthConfig("MyPlugin/1.2", new Credentials.ServerToken(System.getenv("MCAUTH_TOKEN"))));
+        new MinecraftAuthConfig("MyPlugin/1.2",
+                new Credentials.Application(System.getenv("MCAUTH_APP_ID"), System.getenv("MCAUTH_APP_SECRET"))));
 
 UUID uuid = player.getUniqueId();
 CompletableFuture<Boolean> sub = mcauth.subscribedAsync(uuid, Platform.TWITCH, "2");
@@ -143,7 +145,7 @@ A failure to fetch the key throws `UnavailableException`, not `InvalidTokenExcep
 | Option | Default | |
 |---|---|---|
 | `userAgent` | (required) | Sent as `User-Agent`; a blank one is rejected |
-| `credentials` | `Credentials.None` | `ServerToken(token)`, `Application(id, secret)`, or the legacy `ServerTokenBasic(uid, token)` |
+| `credentials` | `Credentials.None` | `Application(id, secret)`, or the deprecated `ServerToken(token)` / `ServerTokenBasic(uid, token)` |
 | `baseUrl` | `https://minecraftauth.me` | |
 | `connectTimeoutMillis` | `5000` | |
 | `readTimeoutMillis` | `10000` | |

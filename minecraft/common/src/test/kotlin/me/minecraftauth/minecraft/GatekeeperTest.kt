@@ -246,14 +246,39 @@ class GatekeeperTest {
     }
 
     @Test
-    fun `no token or no conditions means not enabled`(@TempDir dir: File) {
+    fun `no credentials or no conditions means not enabled`(@TempDir dir: File) {
         val logger = RecordingLogger()
-        val noToken = service(dir, testConfig("TwitchFollower()", token = ""), FakeMembership(), logger = logger)
-        assertEquals(GatekeeperResult.Type.NOT_ENABLED, noToken.check(notch, "Notch", false).type)
-        assertTrue(logger.warnings().single().startsWith("No server token is set"))
+        val noCredentials = service(dir, testConfig("TwitchFollower()", applicationId = "", applicationSecret = ""), FakeMembership(), logger = logger)
+        assertEquals(GatekeeperResult.Type.NOT_ENABLED, noCredentials.check(notch, "Notch", false).type)
+        assertTrue(logger.warnings().single().startsWith("No application credentials are set"))
 
         val noConditions = service(dir, testConfig(), FakeMembership())
         assertEquals(GatekeeperResult.Type.NOT_ENABLED, noConditions.check(notch, "Notch", false).type)
+    }
+
+    @Test
+    fun `half an application is not enabled`(@TempDir dir: File) {
+        val logger = RecordingLogger()
+        val service = service(dir, testConfig("TwitchFollower()", applicationSecret = ""), FakeMembership(), logger = logger)
+        assertEquals(GatekeeperResult.Type.NOT_ENABLED, service.check(notch, "Notch", false).type)
+        assertTrue(logger.warnings().any { it.startsWith("Only one of api.application-id and api.application-secret") }, logger.lines.toString())
+    }
+
+    @Test
+    fun `a legacy server token still works, with a deprecation warning`(@TempDir dir: File) {
+        val fake = FakeMembership().apply { following = setOf(Platform.TWITCH) }
+        val logger = RecordingLogger()
+        val yaml = testConfig("TwitchFollower()", applicationId = "", applicationSecret = "", serverToken = "tok")
+        val service = service(dir, yaml, fake, logger = logger)
+        assertEquals(GatekeeperResult.Type.ALLOWED, service.check(notch, "Notch", false).type)
+        assertTrue(logger.warnings().single().startsWith("api.server-token in MinecraftAuth.yml is deprecated"), logger.lines.toString())
+    }
+
+    @Test
+    fun `an application wins over a legacy server token, without a warning`(@TempDir dir: File) {
+        val logger = RecordingLogger()
+        service(dir, testConfig("TwitchFollower()", serverToken = "tok"), FakeMembership(), logger = logger)
+        assertTrue(logger.warnings().isEmpty(), logger.lines.toString())
     }
 
     @Test

@@ -16,7 +16,8 @@ import mcauth "github.com/MinecraftAuthentication/integrations/lib/go/v2"
 ```go
 client := &mcauth.Client{
 	UserAgent:   "MyBot/1.2", // required by the API: name your integration and its version
-	Credentials: mcauth.ServerToken(os.Getenv("MCAUTH_TOKEN")), // from https://minecraftauth.me/developers
+	// an application from https://minecraftauth.me/developers: checks run as you, its owner
+	Credentials: mcauth.ApplicationCredentials{ID: os.Getenv("MCAUTH_APP_ID"), Secret: os.Getenv("MCAUTH_APP_SECRET")},
 }
 
 ctx := context.Background()
@@ -34,7 +35,7 @@ switch {
 case err == nil:
 	// ok is the answer
 case mcauth.IsConfig(err):
-	// 400, 401, 403: check the token, role or server ID. Retrying won't help.
+	// 400, 401, 403: check the credentials, role or server ID. Retrying won't help.
 case mcauth.IsTemporary(err):
 	// network error, 409, 429, 5xx: try again later
 }
@@ -99,7 +100,7 @@ key (at most once per `RefreshInterval`, 1 minute by default) in case it rotated
 | Field | Default | |
 |---|---|---|
 | `UserAgent` | (required) | Sent as `User-Agent` |
-| `Credentials` | `nil` (anonymous) | `mcauth.ServerToken(token)` or `mcauth.ApplicationCredentials{ID, Secret}` |
+| `Credentials` | `nil` (anonymous) | `mcauth.ApplicationCredentials{ID, Secret}`, or the deprecated `mcauth.ServerToken(token)` |
 | `BaseURL` | `https://minecraftauth.me` | |
 | `HTTPClient` | a client with a 10 second timeout | |
 

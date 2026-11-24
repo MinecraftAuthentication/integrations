@@ -7,7 +7,7 @@
 		redirect https://example.com/mcauth/callback
 
 		# needed by membership rules (twitch_*, discord_*, patreon_member, youtube_*)
-		server_token {env.MCAUTH_SERVER_TOKEN}
+		app_secret {env.MCAUTH_APP_SECRET}
 
 		# encrypts the cookies; without it a random key is made on every start, logging everyone out
 		session_key {env.MCAUTH_SESSION_KEY}

@@ -6,7 +6,7 @@
 		app_id {env.MCAUTH_APP_ID}
 		redirect https://example.com/mcauth/callback
 		session_key {env.MCAUTH_SESSION_KEY}
-		server_token {env.MCAUTH_SERVER_TOKEN}
+		app_secret {env.MCAUTH_APP_SECRET}
 
 		luckperms http://localhost:8080 {
 			api_key {env.LUCKPERMS_REST_KEY}

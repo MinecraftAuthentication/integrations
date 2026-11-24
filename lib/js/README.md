@@ -11,11 +11,12 @@ npm install @minecraftauth/lib
 ## Membership checks
 
 ```ts
-import { MinecraftAuth, serverToken, isConfig, isTemporary } from "@minecraftauth/lib";
+import { MinecraftAuth, application, isConfig, isTemporary } from "@minecraftauth/lib";
 
 const mcauth = new MinecraftAuth({
   userAgent: "MyBot/1.2", // required by the API: name your integration and its version
-  credentials: serverToken(process.env.MCAUTH_TOKEN!), // from https://minecraftauth.me/developers
+  // an application from https://minecraftauth.me/developers: checks run as you, its owner
+  credentials: application(process.env.MCAUTH_APP_ID!, process.env.MCAUTH_APP_SECRET!),
 });
 
 const uuid = "069a79f4-44e9-4726-a5be-fca90e38aaf5";
@@ -28,7 +29,7 @@ try {
   await mcauth.discordRole(uuid, "Subscriber", "987654321098765432"); // or by name, in that server
   await mcauth.discordPresent(uuid, "987654321098765432"); // in a Discord server
 } catch (err) {
-  if (isConfig(err)) console.error("check the token / role / server id", err); // 400, 401, 403
+  if (isConfig(err)) console.error("check the credentials / role / server id", err); // 400, 401, 403
   else if (isTemporary(err)) console.warn("try again later", err); // network, 409, 429, 5xx
   else throw err;
 }
@@ -85,7 +86,7 @@ once per minute.
 | Option | Default | |
 |---|---|---|
 | `userAgent` | (required) | Sent as `User-Agent`. Browsers may ignore it. |
-| `credentials` | `anonymous` | `serverToken(token)`, `application(id, secret)`, or the legacy `serverTokenBasic(uid, token)` |
+| `credentials` | `anonymous` | `application(id, secret)`, or the deprecated `serverToken(token)` / `serverTokenBasic(uid, token)` |
 | `baseUrl` | `https://minecraftauth.me` | |
 | `timeoutMs` | `10000` | Per request, `0` disables it |
 | `fetch` | `globalThis.fetch` | Inject a custom fetch (proxies, tests) |

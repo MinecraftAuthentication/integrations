@@ -56,8 +56,12 @@ type Credentials interface {
 	Authorization() string
 }
 
-// ServerToken is a creator's server token from https://minecraftauth.me/developers, sent as Bearer.
+// ServerToken is a creator's server token, sent as Bearer.
 // Membership checks answer whether a player supports the token's owner.
+//
+// Deprecated: Server tokens were retired: no new ones are issued, and existing ones stop working at the end of the
+// API's v1 grace period. Create an application at https://minecraftauth.me/developers and use
+// ApplicationCredentials.
 type ServerToken string
 
 func (t ServerToken) Authorization() string {
@@ -67,7 +71,9 @@ func (t ServerToken) Authorization() string {
 	return "Bearer " + string(t)
 }
 
-// ApplicationCredentials are an application's ID and secret, required for access (grant) requests.
+// ApplicationCredentials are an application's ID and secret from https://minecraftauth.me/developers. Membership
+// checks made with any of a user's applications answer whether a player supports that user, the application's
+// owner. They're also required for access (grant) requests. Keep the secret on your server.
 type ApplicationCredentials struct {
 	ID     string
 	Secret string

@@ -65,16 +65,16 @@ class MinecraftAuthCommandTest {
     }
 
     @Test
-    fun `status without a token`(@TempDir dir: File) {
-        val service = testService(dir, testConfig("TwitchFollower()", token = ""))
+    fun `status without credentials`(@TempDir dir: File) {
+        val service = testService(dir, testConfig("TwitchFollower()", applicationId = "", applicationSecret = ""))
         val source = Source()
         MinecraftAuthCommand.execute(service, source, emptyList())
 
-        assertEquals(listOf(header, "§cNo server token configured; the gatekeeper is off."), source.messages)
+        assertEquals(listOf(header, "§cNo application credentials configured; the gatekeeper is off."), source.messages)
     }
 
     @Test
-    fun `status with a token`(@TempDir dir: File) {
+    fun `status with credentials`(@TempDir dir: File) {
         val service = testService(dir, testConfig("TwitchFollower()", "YouTubeMember()"))
         val source = Source()
         MinecraftAuthCommand.execute(service, source, emptyList())

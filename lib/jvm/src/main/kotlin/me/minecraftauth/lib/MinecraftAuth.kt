@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * Configuration for [MinecraftAuth].
  *
  * @property userAgent required by the API. Name your integration and its version, e.g. `MyPlugin/1.4`.
- * @property credentials how to authenticate. Membership checks need a server token or application credentials.
+ * @property credentials how to authenticate. Membership checks need application credentials.
  * @property baseUrl the API host; every path already includes `/api/v2`.
  */
 data class MinecraftAuthConfig @JvmOverloads constructor(

@@ -1,6 +1,5 @@
 package me.minecraftauth.minecraft
 
-import me.minecraftauth.lib.Credentials
 import me.minecraftauth.lib.MinecraftAuth
 import me.minecraftauth.lib.MinecraftAuthConfig
 import java.io.File
@@ -65,7 +64,7 @@ class MinecraftAuthService @JvmOverloads constructor(
         fun createClient(settings: Settings, platformName: String): MinecraftAuth = MinecraftAuth(
             MinecraftAuthConfig(
                 userAgent = "MinecraftAuth-$platformName/$VERSION",
-                credentials = settings.serverToken?.let { Credentials.ServerToken(it) } ?: Credentials.None,
+                credentials = settings.credentials(),
             )
         )
     }
@@ -102,7 +101,7 @@ object MinecraftAuthCommand {
                 val settings = service.settings
                 source.sendMessage(Text.colorize("&eMinecraftAuth &7v${MinecraftAuthService.VERSION} (${service.platformName}) &8- &fhttps://minecraftauth.me"))
                 source.sendMessage(Text.colorize(
-                    if (settings.serverToken == null) "&cNo server token configured; the gatekeeper is off."
+                    if (!settings.hasCredentials) "&cNo application credentials configured; the gatekeeper is off."
                     else "&7Gatekeeper: &f${settings.global.conditions.size}&7 condition(s)" +
                         if (settings.servers.isEmpty()) "" else ", &f${settings.servers.size}&7 backend server rule set(s)"
                 ))

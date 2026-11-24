@@ -6,6 +6,7 @@ import dev.dejvokep.boostedyaml.settings.dumper.DumperSettings
 import dev.dejvokep.boostedyaml.settings.general.GeneralSettings
 import dev.dejvokep.boostedyaml.settings.loader.LoaderSettings
 import dev.dejvokep.boostedyaml.settings.updater.UpdaterSettings
+import me.minecraftauth.lib.Credentials
 import java.io.File
 
 enum class ApiErrorPolicy { DENY, ALLOW }
@@ -21,6 +22,11 @@ data class RealmSettings(
 
 /** Everything read from `MinecraftAuth.yml`. */
 data class Settings(
+    /** `api.application-id`; credentials need both it and [applicationSecret]. */
+    val applicationId: String?,
+    /** `api.application-secret`. */
+    val applicationSecret: String?,
+    /** The deprecated `api.server-token`, only used when no application is set. */
     val serverToken: String?,
     val cacheSeconds: Long,
     val bypassAdmins: Boolean,
@@ -28,6 +34,23 @@ data class Settings(
     val global: RealmSettings,
     val servers: Map<String, RealmSettings>,
 ) {
+    /** Whether an application's ID and secret are both set. */
+    val hasApplication: Boolean get() = applicationId != null && applicationSecret != null
+
+    /** Whether only the deprecated server token is set, which should be replaced with an application. */
+    val usesLegacyToken: Boolean get() = !hasApplication && serverToken != null
+
+    /** Whether there are credentials to run membership checks with. */
+    val hasCredentials: Boolean get() = hasApplication || serverToken != null
+
+    /** The credentials to call the API with: the application, else the deprecated server token, else none. */
+    @Suppress("DEPRECATION")
+    fun credentials(): Credentials = when {
+        hasApplication -> Credentials.Application(applicationId!!, applicationSecret!!)
+        serverToken != null -> Credentials.ServerToken(serverToken)
+        else -> Credentials.None
+    }
+
     companion object {
         const val FILE_NAME = "MinecraftAuth.yml"
 
@@ -73,6 +96,8 @@ data class Settings(
                 }
             }
             return Settings(
+                applicationId = root.getString("api.application-id", "").trim().ifEmpty { null },
+                applicationSecret = root.getString("api.application-secret", "").trim().ifEmpty { null },
                 serverToken = root.getString("api.server-token", "").trim().ifEmpty { null },
                 cacheSeconds = root.getLong("api.cache-seconds", 60L).coerceAtLeast(0),
                 bypassAdmins = root.getBoolean("gatekeeper.bypass-admins", true),
