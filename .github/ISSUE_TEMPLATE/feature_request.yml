@@ -1,0 +1,27 @@
+name: Feature request
+description: A new condition, platform, option or library feature
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      multiple: true
+      options:
+        - Minecraft plugins / proxies / mods
+        - Caddy module
+        - API libraries (JVM, Go, JavaScript)
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The problem you want solved, not just the solution you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: How do you picture it working?
+      description: For a new condition, an example config line helps.

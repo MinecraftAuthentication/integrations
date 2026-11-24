@@ -1,0 +1,40 @@
+# Telling the backend who the player is. After `mcauth` lets a request through, these placeholders are set:
+#   {mcauth.uuid}       Minecraft UUID
+#   {mcauth.name}       Minecraft name
+
+{
+	mcauth {
+		app_id {env.MCAUTH_APP_ID}
+		redirect https://example.com/mcauth/callback
+		session_key {env.MCAUTH_SESSION_KEY}
+
+		realm players {
+			linked
+		}
+	}
+}
+
+example.com {
+	# access log with the player's UUID in user_id, and grant tokens kept out of it
+	log {
+		format filter {
+			request>uri query {
+				delete token
+			}
+		}
+	}
+
+	mcauth_callback /mcauth/callback
+	mcauth players
+
+	# placeholders work in any directive
+	respond /whoami "Logged in as {mcauth.name} ({mcauth.uuid})"
+
+	reverse_proxy localhost:9000 {
+		# drop anything the client sent under these names, so they can't be spoofed
+		header_up -X-Minecraft-*
+		header_up X-Minecraft-UUID {mcauth.uuid}
+		header_up X-Minecraft-Name {mcauth.name}
+		header_up X-MinecraftAuth-Identity {mcauth.identity}
+	}
+}

@@ -1,0 +1,10 @@
+
+  # Extra conditions for joining specific backend servers.
+  # Each server accepts the same keys as above (conditions, messages, bypass); anything left out
+  # falls back to the values above.
+  servers: {}
+  #  event:
+  #    conditions:
+  #      - TwitchSubscriber(2)
+  #    messages:
+  #      denied: "&cThe event server is for tier 2+ Twitch subscribers only."

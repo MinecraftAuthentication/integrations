@@ -1,0 +1,44 @@
+# Twitch followers and subscribers of the channel linked to your MinecraftAuth.me account.
+# Players need Twitch linked on MinecraftAuth.me; the membership rules need your server token.
+
+{
+	mcauth {
+		app_id {env.MCAUTH_APP_ID}
+		redirect https://example.com/mcauth/callback
+		session_key {env.MCAUTH_SESSION_KEY}
+		# https://minecraftauth.me/developers; "your channel" is the one linked to this token's owner
+		server_token {env.MCAUTH_SERVER_TOKEN}
+
+		# ask players to link Twitch while they log in, if they haven't yet
+		scopes twitch
+
+		realm followers {
+			twitch_follower
+		}
+		realm subs {
+			# any tier
+			twitch_subscriber
+		}
+		realm tier3 {
+			# tier 3 only (3 and 3000 both work); a minimum tier, so `2` also lets tier 3 in
+			twitch_subscriber 3
+		}
+	}
+}
+
+example.com {
+	mcauth_callback /mcauth/callback
+
+	route /tier3/* {
+		mcauth tier3
+		file_server
+	}
+
+	route /subs/* {
+		mcauth subs
+		file_server
+	}
+
+	mcauth followers
+	file_server
+}

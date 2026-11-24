@@ -1,0 +1,27 @@
+# The smallest setup: anyone who logs in with a MinecraftAuth.me account gets in.
+# No server token needed.
+#
+#   MCAUTH_APP_ID=... MCAUTH_SESSION_KEY=... caddy run --config basic.Caddyfile
+
+{
+	mcauth {
+		# https://minecraftauth.me/developers: create an application and add this redirect URL to it
+		app_id {env.MCAUTH_APP_ID}
+		redirect https://example.com/mcauth/callback
+
+		# 32+ random characters (e.g. `openssl rand -hex 32`), so logins survive a restart
+		session_key {env.MCAUTH_SESSION_KEY}
+
+		realm players {
+			linked
+		}
+	}
+}
+
+example.com {
+	# the path of the redirect URL above
+	mcauth_callback /mcauth/callback
+
+	mcauth players
+	file_server
+}

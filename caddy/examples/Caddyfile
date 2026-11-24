@@ -1,0 +1,68 @@
+{
+	mcauth {
+		# https://minecraftauth.me/developers: create an application and add the redirect URL below to it
+		app_id {env.MCAUTH_APP_ID}
+		redirect https://example.com/mcauth/callback
+
+		# only needed for membership rules (twitch_follower, discord_role, ...)
+		server_token {env.MCAUTH_SERVER_TOKEN}
+
+		# 32+ random characters; keeps players logged in across restarts
+		session_key {env.MCAUTH_SESSION_KEY}
+
+		# optional: a LuckPerms REST API (https://luckperms.net/wiki/Standalone-and-REST-API) for permission and group rules
+		luckperms http://localhost:8080 {
+			api_key {env.LUCKPERMS_REST_KEY}
+		}
+
+		realm staff {
+			player 069a79f4-44e9-4726-a5be-fca90e38aaf5 Notch
+			permission website.admin
+			group admin
+		}
+
+		realm supporters {
+			twitch_subscriber 2
+			discord_role 123456789012345678
+			patreon_member "Gold"
+		}
+
+		realm community {
+			discord_server 987654321098765432
+			# Twitch followers too, except anyone in the LuckPerms "shunned" group
+			all {
+				twitch_follower
+				not group shunned
+			}
+		}
+	}
+}
+
+example.com {
+	# keep grant tokens out of the access log
+	log {
+		format filter {
+			request>uri query {
+				delete token
+			}
+		}
+	}
+
+	mcauth_callback /mcauth/callback
+
+	route /admin/* {
+		mcauth staff
+		reverse_proxy localhost:9000 {
+			header_up X-Minecraft-UUID {mcauth.uuid}
+			header_up X-Minecraft-Name {mcauth.name}
+		}
+	}
+
+	route /vip/* {
+		mcauth supporters
+		reverse_proxy localhost:9001
+	}
+
+	mcauth community
+	file_server
+}

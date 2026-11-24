@@ -1,0 +1,44 @@
+# Every mcauth global option, with its default where it has one.
+
+{
+	mcauth {
+		# required
+		app_id {env.MCAUTH_APP_ID}
+		redirect https://example.com/mcauth/callback
+
+		# needed by membership rules (twitch_*, discord_*, patreon_member, youtube_*)
+		server_token {env.MCAUTH_SERVER_TOKEN}
+
+		# encrypts the cookies; without it a random key is made on every start, logging everyone out
+		session_key {env.MCAUTH_SESSION_KEY}
+
+		# how long a login lasts (default 24h)
+		session_ttl 72h
+
+		# how long membership and LuckPerms answers are cached (default 5m); lower = access removed sooner
+		membership_ttl 1m
+
+		# when MinecraftAuth.me, a platform or LuckPerms can't answer: deny (503, default) or allow
+		on_api_error allow
+
+		# false asks the player to approve your application on every login (default true)
+		persist false
+
+		# extra platforms to ask the player to link during login (minecraft is always requested)
+		scopes discord twitch
+
+		# cookies are <prefix>_session and <prefix>_state (default mcauth); change it if something else
+		# on this host already uses those names
+		cookie_prefix mysite
+
+		realm players {
+			linked
+		}
+	}
+}
+
+example.com {
+	mcauth_callback /mcauth/callback
+	mcauth players
+	file_server
+}

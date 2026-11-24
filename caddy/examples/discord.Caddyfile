@@ -1,0 +1,35 @@
+# Members of a Discord server, or holders of a Discord role.
+# The MinecraftAuth bot must be in the server: https://minecraftauth.me/developers
+
+{
+	mcauth {
+		app_id {env.MCAUTH_APP_ID}
+		redirect https://example.com/mcauth/callback
+		session_key {env.MCAUTH_SESSION_KEY}
+		server_token {env.MCAUTH_SERVER_TOKEN}
+
+		scopes discord
+
+		realm members {
+			# guild ID (Discord developer mode: right-click the server -> Copy Server ID)
+			discord_server 987654321098765432
+		}
+		realm moderators {
+			# a role ID, or the guild ID and a role name (quote names with spaces).
+			# A name always needs its guild: anyone can create a role with that name in their own server.
+			discord_role 123456789012345678
+			discord_role 987654321098765432 "Mod Team"
+		}
+	}
+}
+
+example.com {
+	mcauth_callback /mcauth/callback
+
+	# anyone in the Discord can read; only moderators can edit
+	@edit method POST PUT PATCH DELETE
+	mcauth @edit moderators
+	mcauth members
+
+	reverse_proxy localhost:3000
+}

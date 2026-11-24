@@ -1,0 +1,35 @@
+{
+  "loader": {
+    "name": "java_plain",
+    "version": "1.0"
+  },
+  "license": "Apache-2.0",
+  "global": {
+    "version": "${version}",
+    "links": {
+      "homepage": "https://minecraftauth.me",
+      "source": "https://github.com/MinecraftAuthentication/integrations",
+      "issues": "https://github.com/MinecraftAuthentication/integrations/issues"
+    },
+    "contributors": [
+      {
+        "name": "MinecraftAuth.me",
+        "description": "Author"
+      }
+    ],
+    "dependencies": [
+      {
+        "id": "spongeapi",
+        "version": "8.0.0"
+      }
+    ]
+  },
+  "plugins": [
+    {
+      "id": "minecraftauth",
+      "name": "MinecraftAuth",
+      "entrypoint": "me.minecraftauth.minecraft.sponge.MinecraftAuthSponge",
+      "description": "Only let players in who follow, subscribe to or support you on Twitch, YouTube, Patreon or Discord."
+    }
+  ]
+}

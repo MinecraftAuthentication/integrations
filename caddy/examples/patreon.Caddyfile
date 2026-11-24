@@ -1,0 +1,41 @@
+# Active Patreon patrons of your campaign, optionally of a specific tier.
+
+{
+	mcauth {
+		app_id {env.MCAUTH_APP_ID}
+		redirect https://example.com/mcauth/callback
+		session_key {env.MCAUTH_SESSION_KEY}
+		server_token {env.MCAUTH_SERVER_TOKEN}
+
+		scopes patreon
+
+		realm patrons {
+			# any active patron
+			patreon_member
+		}
+		realm gold {
+			# the tier's title as shown on Patreon; either tier gets in
+			patreon_member "Gold"
+			patreon_member "Diamond"
+		}
+	}
+}
+
+example.com {
+	mcauth_callback /mcauth/callback
+
+	handle /downloads/gold/* {
+		mcauth gold
+		file_server
+	}
+
+	handle /downloads/* {
+		mcauth patrons
+		file_server
+	}
+
+	# the rest of the site is public
+	handle {
+		file_server
+	}
+}

@@ -1,0 +1,51 @@
+# MinecraftAuth — https://minecraftauth.me
+#
+# Players link their Minecraft account to Discord, Twitch, Patreon and YouTube at https://minecraftauth.me.
+# This plugin/mod then decides who may join based on those links.
+
+api:
+  # Your server token from https://minecraftauth.me/developers. Membership checks (follower,
+  # subscriber, Discord role, ...) answer "does this player support ME?", where "me" is the owner of this token.
+  server-token: ""
+
+  # How long, in seconds, to remember a membership answer before asking MinecraftAuth.me again.
+  cache-seconds: 60
+
+gatekeeper:
+  # Players (UUIDs or names) who may always join.
+  bypass:
+    - "d7c1db4d-e57b-488b-b8bc-4462fe49a3e8"
+    - "Scarsz"
+
+  # Let server operators / players with the "minecraftauth.bypass" permission in without checks.
+  bypass-admins: true
+
+  # What to do when MinecraftAuth.me (or Twitch, Discord, ...) can't be reached: "deny" or "allow".
+  on-api-error: deny
+
+  messages:
+    denied: "&cYou must be following me on Twitch to join!\n\n&7Already following? Link your accounts at &ehttps://minecraftauth.me"
+    error: "&cWe couldn't check your linked accounts right now. Please try again in a minute."
+
+  # A player may join when ANY one of these conditions is true. Leave the list empty to turn the gatekeeper off.
+  #
+  # Available conditions:
+  #   TwitchFollower()                 follows your Twitch channel
+  #   TwitchSubscriber()               subscribes on Twitch (any tier)
+  #   TwitchSubscriber(2)              subscribes at tier 2 or higher
+  #   YouTubeSubscriber()              subscribes to your YouTube channel
+  #   YouTubeMember()                  is a member of your YouTube channel
+  #   PatreonMember()                  is an active patron (any tier)
+  #   PatreonMember("Gold")            is an active patron of the "Gold" tier
+  #   DiscordServer("guild id")        is in that Discord server
+  #   DiscordRole("role id")           has that Discord role
+  #   DiscordRole("guild id", "name")  has the role with that name in that Discord server. A role name always
+  #                                    needs the guild id: anyone could create a role with that name elsewhere.
+  #                                    The bot must be in the server, and you must own or moderate it.
+  #   Linked()                         has linked their Minecraft account at all
+  #   Linked("discord")                has also linked a Discord (twitch, patreon, google) account
+  #
+  # Combine them with "and", "or" and "not(...)", e.g.  TwitchSubscriber() and not(DiscordRole("guild id", "Banned"))
+  conditions:
+    - TwitchFollower()
+

@@ -1,0 +1,33 @@
+package me.minecraftauth.lib
+
+/**
+ * Base class for every error raised by the client.
+ *
+ * @property status the HTTP status the API answered with, or `null` when no response was received
+ */
+open class MinecraftAuthException(
+    message: String,
+    val status: Int? = null,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
+
+/**
+ * The request was rejected because of how the integration is set up: a malformed parameter (400),
+ * missing credentials (401) or wrong or insufficient credentials (403). Retrying won't help; the
+ * server owner needs to fix their configuration.
+ */
+class ConfigurationException(message: String, status: Int) : MinecraftAuthException(message, status)
+
+/**
+ * The answer is temporarily unavailable: the MinecraftAuth bot isn't in a Discord server (409),
+ * too many pending access requests (429), an upstream platform failed (502), a server error (5xx),
+ * or the API couldn't be reached at all.
+ */
+class UnavailableException(message: String, status: Int? = null, cause: Throwable? = null) :
+    MinecraftAuthException(message, status, cause)
+
+/** The requested resource doesn't exist or is hidden by the player's privacy settings (404). */
+class NotFoundException(message: String) : MinecraftAuthException(message, 404)
+
+/** A grant token failed verification. */
+class InvalidTokenException(message: String, cause: Throwable? = null) : MinecraftAuthException(message, null, cause)

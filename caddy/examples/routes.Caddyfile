@@ -1,0 +1,42 @@
+# Different rules for different parts of one site, with some paths left public.
+#
+# The login only works on the host of the `redirect` URL (the session cookie belongs to that host),
+# so protect paths on one site rather than several hosts.
+
+{
+	mcauth {
+		app_id {env.MCAUTH_APP_ID}
+		redirect https://example.com/mcauth/callback
+		session_key {env.MCAUTH_SESSION_KEY}
+
+		realm players {
+			linked
+		}
+		realm admins {
+			player 069a79f4-44e9-4726-a5be-fca90e38aaf5
+		}
+	}
+}
+
+example.com {
+	mcauth_callback /mcauth/callback
+
+	# a different realm and backend per path
+	route /admin/* {
+		mcauth admins
+		reverse_proxy localhost:9000
+	}
+
+	handle /api/* {
+		# requests without a login that aren't GET/HEAD (form posts, fetch calls, ...) get 401
+		# instead of a redirect to MinecraftAuth.me
+		mcauth players
+		reverse_proxy localhost:9001
+	}
+
+	# everything else needs a login, except a few public paths (a named matcher on the directive;
+	# a path works too: `mcauth /members/* players`)
+	@private not path / /assets/* /favicon.ico /robots.txt
+	mcauth @private players
+	file_server
+}

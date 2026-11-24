@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "minecraftauth",
+  "version": "${version}",
+  "name": "MinecraftAuth",
+  "description": "Only let players in who follow, subscribe to or support you on Twitch, YouTube, Patreon or Discord.",
+  "authors": ["MinecraftAuth.me"],
+  "contact": {
+    "homepage": "https://minecraftauth.me",
+    "sources": "https://github.com/MinecraftAuthentication/integrations",
+    "issues": "https://github.com/MinecraftAuthentication/integrations/issues"
+  },
+  "license": "Apache-2.0",
+  "environment": "server",
+  "entrypoints": {
+    "server": ["me.minecraftauth.mod.fabric.FabricEntrypoint"]
+  },
+  "mixins": ["minecraftauth.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.14.0",
+    "${fabric_api_id}": "*",
+    "minecraft": "${minecraft_range}",
+    "java": ">=${java_version}"
+  }
+}

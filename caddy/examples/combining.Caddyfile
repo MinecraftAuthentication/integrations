@@ -1,0 +1,84 @@
+# Combining rules. A realm lets a player in when ANY rule matches; `all { }` needs every rule inside it,
+# and `not` inverts a rule.
+
+{
+	mcauth {
+		app_id {env.MCAUTH_APP_ID}
+		redirect https://example.com/mcauth/callback
+		session_key {env.MCAUTH_SESSION_KEY}
+		server_token {env.MCAUTH_SERVER_TOKEN}
+
+		luckperms http://localhost:8080 {
+			api_key {env.LUCKPERMS_REST_KEY}
+		}
+
+		# OR: supporters on any platform
+		realm supporters {
+			twitch_subscriber
+			patreon_member
+			youtube_member
+		}
+
+		# AND: in the Discord AND following on Twitch
+		realm community {
+			all {
+				discord_server 987654321098765432
+				twitch_follower
+			}
+		}
+
+		# NOT: every logged-in player except the shunned group and one player
+		realm everyone_but_shunned {
+			all {
+				not group shunned
+				not player Herobrine
+			}
+		}
+
+		# mixed: staff always; otherwise a tier 2+ subscriber who isn't shunned
+		realm vip {
+			group staff
+			all {
+				twitch_subscriber 2
+				not group shunned
+			}
+		}
+
+		# NOT ALL: anyone except players who are BOTH banned on Discord and on probation in game
+		realm lenient {
+			not all {
+				discord_role 987654321098765432 Banned
+				group probation
+			}
+		}
+	}
+}
+
+example.com {
+	mcauth_callback /mcauth/callback
+
+	route /vip/* {
+		mcauth vip
+		file_server
+	}
+
+	route /community/* {
+		mcauth community
+		file_server
+	}
+
+	# another way to say AND across realms: several mcauth directives, each must pass
+	route /supporters-lounge/* {
+		mcauth supporters
+		mcauth everyone_but_shunned
+		file_server
+	}
+
+	route /forum/* {
+		mcauth lenient
+		reverse_proxy localhost:4567
+	}
+
+	mcauth everyone_but_shunned
+	file_server
+}

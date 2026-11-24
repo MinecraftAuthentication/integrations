@@ -1,0 +1,45 @@
+# Custom pages for the errors mcauth returns:
+#   401  not logged in, and the request isn't a GET/HEAD (so it can't be redirected to the login)
+#   403  logged in, but not allowed into the realm (or the login was canceled)
+#   400  the login expired or was started in another browser
+#   503  MinecraftAuth.me, a platform or LuckPerms couldn't answer (with on_api_error deny)
+
+{
+	mcauth {
+		app_id {env.MCAUTH_APP_ID}
+		redirect https://example.com/mcauth/callback
+		session_key {env.MCAUTH_SESSION_KEY}
+		server_token {env.MCAUTH_SERVER_TOKEN}
+
+		realm subs {
+			twitch_subscriber
+		}
+	}
+}
+
+example.com {
+	mcauth_callback /mcauth/callback
+	mcauth subs
+	file_server
+
+	handle_errors 403 {
+		respond "This page is for Twitch subscribers. Subscribe, then come back!" 403
+	}
+
+	handle_errors 400 {
+		# send them through the login again
+		redir / 302
+	}
+
+	handle_errors 503 {
+		header Retry-After 60
+		respond "We couldn't check your subscription right now. Try again in a minute." 503
+	}
+
+	# everything else: a static page per status, e.g. /srv/errors/401.html
+	handle_errors {
+		root * /srv/errors
+		rewrite * /{err.status_code}.html
+		file_server
+	}
+}

@@ -1,0 +1,22 @@
+name: MinecraftAuth
+main: me.minecraftauth.minecraft.bukkit.MinecraftAuthBukkit
+version: "${version}"
+api-version: "1.13"
+folia-supported: true
+description: Only let players in who follow, subscribe to or support you on Twitch, YouTube, Patreon or Discord.
+website: https://minecraftauth.me
+authors: [MinecraftAuth.me]
+
+commands:
+  minecraftauth:
+    description: MinecraftAuth status and reload
+    usage: /<command> [reload]
+    aliases: [mcauth]
+
+permissions:
+  minecraftauth.reload:
+    description: Use /minecraftauth reload
+    default: op
+  minecraftauth.bypass:
+    description: Skip MinecraftAuth's join requirements when bypass-admins is on (operators always do)
+    default: false

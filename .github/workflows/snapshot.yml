@@ -1,0 +1,105 @@
+name: Snapshot
+
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+    branches: [devel]
+  # republish the latest successful devel build by hand
+  workflow_dispatch:
+
+concurrency:
+  group: snapshot
+  # a newer commit supersedes this one; its run repairs anything a canceled run left half-done
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  BRANCH: devel
+  TAG: snapshot
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Find the build to publish
+        id: build
+        env:
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -z "$RUN_ID" ]; then
+            read -r RUN_ID RUN_SHA < <(gh run list --workflow build.yml --branch "$BRANCH" --event push \
+              --status success --limit 1 --json databaseId,headSha --jq '.[] | "\(.databaseId) \(.headSha)"') || true
+          fi
+          if [ -z "$RUN_ID" ]; then echo "::error::No successful Build run on $BRANCH"; exit 1; fi
+          echo "run-id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "sha=$RUN_SHA" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.build.outputs.sha }}
+          # the whole history and tags, for the commit list in the release notes
+          fetch-depth: 0
+
+      - name: Skip if devel has moved on
+        id: current
+        env:
+          SHA: ${{ steps.build.outputs.sha }}
+        run: |
+          # a slow run for an older commit must not replace the snapshot of a newer one
+          tip=$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)
+          if [ "$tip" = "$SHA" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$BRANCH is at $tip now, not $SHA; leaving the snapshot to that commit's run"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/download-artifact@v4
+        if: steps.current.outputs.publish == 'true'
+        with:
+          name: minecraft
+          path: dist
+          run-id: ${{ steps.build.outputs.run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Publish the snapshot release
+        if: steps.current.outputs.publish == 'true'
+        env:
+          SHA: ${{ steps.build.outputs.sha }}
+          SERVER: ${{ github.server_url }}
+        run: |
+          version=$(sed -n 's/^version=//p' gradle.properties)
+          short=$(git rev-parse --short "$SHA")
+          mapfile -t jars < <(find dist -type f -name '*.jar' | sort)
+          if [ "${#jars[@]}" -eq 0 ]; then echo "::error::No jars in the build artifact"; exit 1; fi
+
+          if previous=$(git describe --tags --abbrev=0 --match 'v[0-9]*' "$SHA" 2>/dev/null); then
+            range="$previous..$SHA"; since="since $previous"
+          else
+            range="-20 $SHA"; since="(latest 20)"
+          fi
+          {
+            echo "Development build of \`$BRANCH\` at [\`$short\`]($SERVER/$GH_REPO/commit/$SHA), version \`$version\`."
+            echo "It's replaced by every new commit and isn't meant for production; use a [release]($SERVER/$GH_REPO/releases/latest) for that."
+            echo
+            echo "### Commits $since"
+            echo
+            git log --format="- %s (%h)" $range
+          } > notes.md
+
+          # delete and recreate rather than edit: it moves the tag to the new commit, drops jars a version change
+          # renamed, and puts the release date at this build
+          gh release delete "$TAG" --cleanup-tag --yes || true
+          gh release create "$TAG" "${jars[@]}" --prerelease --target "$SHA" \
+            --title "Snapshot $version ($short)" --notes-file notes.md

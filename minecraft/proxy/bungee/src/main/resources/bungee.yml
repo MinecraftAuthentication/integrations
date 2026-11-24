@@ -1,0 +1,6 @@
+name: MinecraftAuth
+main: me.minecraftauth.minecraft.bungee.MinecraftAuthBungee
+version: "${version}"
+author: MinecraftAuth.me
+description: Only let players in who follow, subscribe to or support you on Twitch, YouTube, Patreon or Discord.
+website: https://minecraftauth.me

@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "me.minecraftauth.mod.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "server": [
+    "PlayerListMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

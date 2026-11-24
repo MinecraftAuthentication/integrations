@@ -1,0 +1,51 @@
+# Gate routes with the permissions and groups you manage in game, through the LuckPerms REST API
+# (https://luckperms.net/wiki/Standalone-and-REST-API) connected to your servers' LuckPerms database.
+# No server token needed.
+
+{
+	mcauth {
+		app_id {env.MCAUTH_APP_ID}
+		redirect https://example.com/mcauth/callback
+		session_key {env.MCAUTH_SESSION_KEY}
+
+		# keep the REST API on a private network or behind HTTPS
+		luckperms http://localhost:8080 {
+			# one of LUCKPERMS_REST_AUTH_KEYS; leave the block out if auth is off
+			api_key {env.LUCKPERMS_REST_KEY}
+		}
+
+		realm admins {
+			permission website.admin
+		}
+		realm staff {
+			# group <name> is shorthand for permission group.<name> (inherited groups count)
+			group admin
+			group moderator
+		}
+		realm survival {
+			# only counts where LuckPerms would grant it on the survival server
+			permission website.map server=survival
+		}
+	}
+}
+
+example.com {
+	mcauth_callback /mcauth/callback
+
+	route /admin/* {
+		mcauth admins
+		reverse_proxy localhost:9000
+	}
+
+	route /staff/* {
+		mcauth staff
+		reverse_proxy localhost:9001
+	}
+
+	route /map/* {
+		mcauth survival
+		reverse_proxy localhost:8100
+	}
+
+	file_server
+}

@@ -1,0 +1,10 @@
+{
+  "id": "minecraftauth",
+  "name": "MinecraftAuth",
+  "version": "${version}",
+  "description": "Only let players in who follow, subscribe to or support you on Twitch, YouTube, Patreon or Discord.",
+  "url": "https://minecraftauth.me",
+  "authors": ["MinecraftAuth.me"],
+  "dependencies": [],
+  "main": "me.minecraftauth.minecraft.velocity.MinecraftAuthVelocity"
+}

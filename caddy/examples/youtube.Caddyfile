@@ -1,0 +1,31 @@
+# YouTube subscribers and channel members (YouTube accounts are linked as "google").
+
+{
+	mcauth {
+		app_id {env.MCAUTH_APP_ID}
+		redirect https://example.com/mcauth/callback
+		session_key {env.MCAUTH_SESSION_KEY}
+		server_token {env.MCAUTH_SERVER_TOKEN}
+
+		scopes google
+
+		realm subscribers {
+			youtube_subscriber
+		}
+		realm members {
+			youtube_member
+		}
+	}
+}
+
+example.com {
+	mcauth_callback /mcauth/callback
+
+	route /members/* {
+		mcauth members
+		file_server
+	}
+
+	mcauth subscribers
+	file_server
+}
