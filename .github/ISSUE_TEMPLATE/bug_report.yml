@@ -5,7 +5,6 @@ body:
   - type: markdown
     attributes:
       value: |
-        Found a security problem? Please don't file it here; see [SECURITY.md](https://github.com/MinecraftAuthentication/integrations/blob/main/SECURITY.md).
         **Remove your server token, application secret and session key from anything you paste.**
   - type: dropdown
     id: component
