@@ -140,6 +140,8 @@ tasks.processResources {
 val collectJar = tasks.register<Copy>("collectJar") {
     from(finalJar)
     into(rootProject.layout.projectDirectory.dir("minecraft/mod/build/libs"))
+    // the controller's clean empties that folder: in `clean build` it must not run after the copy
+    mustRunAfter(":minecraft:mod:clean")
 }
 tasks.named("build") { finalizedBy(collectJar) }
 

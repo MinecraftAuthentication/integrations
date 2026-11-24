@@ -23,6 +23,14 @@ tasks.register("buildAll") {
     dependsOn(stonecutter.versions.map { ":minecraft:mod:${it.project}:build" })
 }
 
+// Every target's collectJar copies its jar into build/libs here, which no target's own clean covers, so old jars
+// (e.g. -SNAPSHOT ones) would pile up and get attached to releases. Only libs: stonecutter-cache must survive.
+tasks.register<Delete>("clean") {
+    group = "build"
+    description = "Deletes the collected mod jars in minecraft/mod/build/libs"
+    delete(layout.buildDirectory.dir("libs"))
+}
+
 tasks.register("runtimeTestAll") {
     group = "verification"
     description = "Runs every target's jar on a real dedicated server (see ModRuntimeTest)"
